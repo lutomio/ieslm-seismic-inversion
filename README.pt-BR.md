@@ -10,11 +10,31 @@ do conjunto**: o ES-MDA usa fatores de inflação $\alpha_i$ fixos, definidos a
 priori; o iES-LM ajusta $\alpha^i$ a cada iteração por uma regra de região de
 confiança.
 
-## Como rodar
+## Instalação
 
 Requer Python 3.9+ e a biblioteca [SeReMpy](https://github.com/dariograna/SeReMpy),
-que fornece as primitivas do modelo direto e o ES-MDA de referência. Coloque-a
-ao lado deste projeto ou aponte a variável `SEREMPY_PATH` para a raiz dela.
+que fornece as primitivas do modelo direto e a implementação de referência do
+ES-MDA. A SeReMpy **não** é modificada nem incorporada a este repositório.
+
+```bash
+git clone https://github.com/lutomio/ieslm-seismic-inversion.git
+cd ieslm-seismic-inversion
+pip install -r requirements.txt
+```
+
+Em seguida, torne a SeReMpy acessível, seja colocando-a ao lado deste projeto:
+
+```bash
+git clone https://github.com/dariograna/SeReMpy.git ../SeReMpy-main
+```
+
+seja apontando uma variável de ambiente para ela:
+
+```bash
+export SEREMPY_PATH=/caminho/para/SeReMpy
+```
+
+## Como rodar
 
 Suíte de testes completa:
 
