@@ -138,3 +138,59 @@ def limites_fisicos(Z, folga_inferior=0.5, folga_superior=1.5):
         (minimo, maximo).
     """
     return float(np.min(Z) * folga_inferior), float(np.max(Z) * folga_superior)
+
+
+def conjunto_prior_multivariado(tendencias, ne, dt, sigma0, comprimento_correlacao=None,
+                                rng=None):
+    """
+    CONJUNTO PRIOR MULTIVARIADO
+    Realizacoes correlacionadas de varias propriedades simultaneamente.
+
+    Generaliza conjunto_prior para o caso elastico, em que o vetor de
+    parametros reune Vp, Vs e rho. A estrutura de covariancia e o produto de
+    Kronecker entre a covariancia estacionaria ENTRE propriedades (sigma0, que
+    preserva a correlacao fisica entre elas) e a covariancia espacial ao longo
+    do tempo - mesma construcao usada pela CorrelatedSimulation da SeReMpy,
+    porem com numpy.random.Generator, para que o experimento seja reprodutivel
+    a partir de uma semente.
+
+    Parameters
+    ----------
+    tendencias : array_like
+        Media a priori de cada propriedade (nm, nv).
+    ne : int
+        Numero de realizacoes.
+    dt : float
+        Passo de amostragem em tempo (s).
+    sigma0 : array_like
+        Covariancia estacionaria entre as propriedades (nv, nv).
+    comprimento_correlacao : float, optional
+        Comprimento de correlacao vertical (s). Por omissao, 5*dt.
+    rng : numpy.random.Generator, optional
+        Gerador aleatorio.
+
+    Returns
+    -------
+    array_like
+        Conjunto a priori empilhado (nm*nv, ne), na ordem das colunas de
+        `tendencias`.
+    """
+    rng = np.random.default_rng() if rng is None else rng
+    nm, nv = tendencias.shape
+
+    if comprimento_correlacao is None:
+        comprimento_correlacao = 5 * dt
+
+    C_tempo = covariancia_espacial(nm, dt, comprimento_correlacao)
+    L_tempo = np.linalg.cholesky(C_tempo + 1e-8 * np.eye(nm))
+    L_prop = np.linalg.cholesky(np.atleast_2d(sigma0) + 1e-12 * np.eye(nv))
+
+    # z ~ N(0, I) de forma (nv, nm, ne); aplica L_tempo no eixo do tempo e
+    # L_prop no eixo das propriedades, o que equivale a kron(sigma0, C_tempo).
+    z = rng.standard_normal((nv, nm, ne))
+    z = np.einsum('ij,jkl->ikl', L_prop, z)
+    z = np.einsum('km,imn->ikn', L_tempo, z)
+
+    blocos = [tendencias[:, [i]] + z[i] for i in range(nv)]
+
+    return np.vstack(blocos)
