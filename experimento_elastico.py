@@ -42,6 +42,11 @@ SEMENTE = 42
 
 COR_MDA, COR_LM, COR_PRIOR = 'tab:blue', 'tab:red', 'tab:gray'
 
+# Janela de tempo ampliada nos paineis a posteriori. Na escala do perfil
+# completo a diferenca entre os metodos e da ordem de 3% da largura do eixo e
+# fica invisivel; esta e a faixa em que eles mais divergem.
+JANELA_ZOOM = (1.810, 1.822)
+
 
 def carrega_cenario():
     """Monta dados, modelo direto, ruido, conjunto a priori e limites."""
@@ -164,7 +169,7 @@ def _tabela(c, Z_mda, hist_mda, aval_mda, res_lm, Z_lm, alphas):
     print('iES-LM parada             :', res_lm.motivo_parada)
 
 
-def _painel(ax, Time, verd, conjuntos, titulo, xlabel):
+def _painel(ax, Time, verd, conjuntos, titulo, xlabel, zoom=None):
     """Um painel de propriedade: verdadeiro + envelopes dos metodos."""
     for conj, cor, rotulo in conjuntos:
         p10, p90 = mt.envelope(conj)
@@ -180,6 +185,38 @@ def _painel(ax, Time, verd, conjuntos, titulo, xlabel):
     lo = min([verd.min()] + [mt.envelope(c)[0].min() for c, _, _ in conjuntos])
     hi = max([verd.max()] + [mt.envelope(c)[1].max() for c, _, _ in conjuntos])
     folga = 0.05 * (hi - lo)
+    ax.set_xlim(lo - folga, hi + folga)
+
+    if zoom:
+        # marca a janela detalhada na figura seguinte, sem cobrir o perfil
+        ax.axhspan(zoom[0], zoom[1], color='0.35', alpha=0.10, zorder=0)
+        ax.axhline(zoom[0], color='0.45', lw=0.7, ls=':')
+        ax.axhline(zoom[1], color='0.45', lw=0.7, ls=':')
+
+
+def _painel_detalhe(ax, Time, verd, conjuntos, titulo, xlabel, zoom):
+    """
+    PAINEL DETALHE
+    Amplia uma janela de tempo. Na escala do perfil completo a diferenca entre
+    os metodos e da ordem de 3% da largura do eixo; aqui ela fica legivel.
+    """
+    t = Time.ravel()
+    dentro = (t >= zoom[0]) & (t <= zoom[1])
+    v = np.asarray(verd).ravel()[dentro]
+
+    for conj, cor, rotulo in conjuntos:
+        p10, p90 = mt.envelope(conj)
+        ax.fill_betweenx(t[dentro], p10[dentro], p90[dentro], color=cor, alpha=0.30, lw=0)
+        ax.plot(conj.mean(axis=1)[dentro], t[dentro], color=cor, lw=1.8, label=rotulo)
+    ax.plot(v, t[dentro], 'k', lw=2.0, label='modelo de referência')
+    ax.set_ylim(zoom[1], zoom[0])
+    ax.set_xlabel(xlabel)
+    ax.set_title(titulo)
+    ax.grid(alpha=0.3)
+
+    lo = min([v.min()] + [mt.envelope(c)[0][dentro].min() for c, _, _ in conjuntos])
+    hi = max([v.max()] + [mt.envelope(c)[1][dentro].max() for c, _, _ in conjuntos])
+    folga = 0.06 * (hi - lo)
     ax.set_xlim(lo - folga, hi + folga)
 
 
@@ -201,7 +238,7 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm):
                 titulos[i] + ' — a priori', rotulos[i])
         _painel(eixos[1, i], Time, verd[i],
                 [(mda[i], COR_MDA, 'ES-MDA'), (lm[i], COR_LM, 'iES-LM')],
-                titulos[i] + ' — a posteriori', rotulos[i])
+                titulos[i] + ' — a posteriori', rotulos[i], zoom=JANELA_ZOOM)
     eixos[0, 0].set_ylabel('Tempo (s)')
     eixos[1, 0].set_ylabel('Tempo (s)')
     eixos[0, 0].legend(loc='lower right', fontsize=8)
@@ -211,7 +248,21 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm):
     fig.savefig(os.path.join(PASTA_FIGURAS, 'elastico_perfis.png'), dpi=150)
     plt.close(fig)
 
-    # Figura 2: erro de estimativa, onde a diferenca entre os metodos aparece
+    # Figura 2: ampliação da janela de maior divergência
+    fig, eixos = plt.subplots(1, 3, figsize=(13, 5.4), sharey=True)
+    for i, ax in enumerate(eixos):
+        _painel_detalhe(ax, Time, verd[i],
+                        [(mda[i], COR_MDA, 'ES-MDA'), (lm[i], COR_LM, 'iES-LM')],
+                        titulos[i], rotulos[i], JANELA_ZOOM)
+    eixos[0].set_ylabel('Tempo (s)')
+    eixos[0].legend(loc='best', fontsize=9)
+    fig.suptitle('Detalhe da janela %.3f–%.3f s: onde os métodos mais divergem'
+                 % JANELA_ZOOM, y=0.98)
+    fig.tight_layout()
+    fig.savefig(os.path.join(PASTA_FIGURAS, 'elastico_detalhe.png'), dpi=150)
+    plt.close(fig)
+
+    # Figura 3: erro de estimativa, onde a diferenca entre os metodos aparece
     # (nos perfis ela fica invisivel: e da ordem de 3% da largura do eixo)
     fig, eixos = plt.subplots(1, 3, figsize=(13, 6), sharey=True)
     for i, ax in enumerate(eixos):
@@ -230,7 +281,7 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm):
     fig.savefig(os.path.join(PASTA_FIGURAS, 'elastico_erro.png'), dpi=150)
     plt.close(fig)
 
-    # Figura 3: residuos sismicos por angulo
+    # Figura 4: residuos sismicos por angulo
     fig, eixos = plt.subplots(1, 3, figsize=(13, 4.6), sharey=True)
     obs = fe.separa_angulos(c['d_obs'])
     for i, (ax, nome) in enumerate(zip(eixos, fe.NOMES_ANGULOS)):
@@ -249,7 +300,7 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm):
     fig.savefig(os.path.join(PASTA_FIGURAS, 'elastico_residuos.png'), dpi=150)
     plt.close(fig)
 
-    # Figura 4: convergencia e trajetoria da regularizacao
+    # Figura 5: convergencia e trajetoria da regularizacao
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4.6))
     ax1.semilogy(range(len(hist_mda)), hist_mda, 'o-', color=COR_MDA,
                  label='ES-MDA (%d assimilações)' % (len(hist_mda) - 1))
