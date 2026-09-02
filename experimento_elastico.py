@@ -211,7 +211,26 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm):
     fig.savefig(os.path.join(PASTA_FIGURAS, 'elastico_perfis.png'), dpi=150)
     plt.close(fig)
 
-    # Figura 2: residuos sismicos por angulo
+    # Figura 2: erro de estimativa, onde a diferenca entre os metodos aparece
+    # (nos perfis ela fica invisivel: e da ordem de 3% da largura do eixo)
+    fig, eixos = plt.subplots(1, 3, figsize=(13, 6), sharey=True)
+    for i, ax in enumerate(eixos):
+        for conj, cor, rot in [(mda[i], COR_MDA, 'ES-MDA'), (lm[i], COR_LM, 'iES-LM')]:
+            erro = conj.mean(axis=1) - verd[i].ravel()
+            ax.plot(erro, Time, color=cor, lw=1.3, label=rot)
+        ax.axvline(0, color='k', lw=1.0, ls='--')
+        ax.set_ylim(Time.max(), Time.min())
+        ax.set_xlabel('Erro em ' + rotulos[i])
+        ax.set_title(titulos[i])
+        ax.grid(alpha=0.3)
+    eixos[0].set_ylabel('Tempo (s)')
+    eixos[0].legend(loc='lower right', fontsize=8)
+    fig.suptitle('Erro de estimativa (média do conjunto − referência)', y=0.98)
+    fig.tight_layout()
+    fig.savefig(os.path.join(PASTA_FIGURAS, 'elastico_erro.png'), dpi=150)
+    plt.close(fig)
+
+    # Figura 3: residuos sismicos por angulo
     fig, eixos = plt.subplots(1, 3, figsize=(13, 4.6), sharey=True)
     obs = fe.separa_angulos(c['d_obs'])
     for i, (ax, nome) in enumerate(zip(eixos, fe.NOMES_ANGULOS)):
@@ -230,7 +249,7 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm):
     fig.savefig(os.path.join(PASTA_FIGURAS, 'elastico_residuos.png'), dpi=150)
     plt.close(fig)
 
-    # Figura 3: convergencia e trajetoria da regularizacao
+    # Figura 4: convergencia e trajetoria da regularizacao
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4.6))
     ax1.semilogy(range(len(hist_mda)), hist_mda, 'o-', color=COR_MDA,
                  label='ES-MDA (%d assimilações)' % (len(hist_mda) - 1))
