@@ -51,6 +51,13 @@ class ResultadoIESLM:
         Historico de gamma^i.
     rho_mediano : list of float
         Mediana das razoes de ganho rho_j em cada iteracao.
+    rho_por_membro : list of array_like
+        Razao de ganho de CADA membro, em cada iteracao. Guardado porque a
+        dispersao entre membros e o que justifica a regra da mediana da
+        Eq. 41: alguns membros apresentam linearizacoes ruins sem que isso
+        deva contaminar o alpha aplicado globalmente.
+    espalhamento : list of array_like
+        Largura do envelope P10-P90 de cada parametro, a cada iteracao.
     motivo_parada : str
         Criterio que encerrou o laco.
     n_avaliacoes : int
@@ -63,6 +70,8 @@ class ResultadoIESLM:
     alpha: list = field(default_factory=list)
     gamma: list = field(default_factory=list)
     rho_mediano: list = field(default_factory=list)
+    rho_por_membro: list = field(default_factory=list)
+    espalhamento: list = field(default_factory=list)
     motivo_parada: str = ''
     n_avaliacoes: int = 0
 
@@ -248,6 +257,13 @@ def perturba_observacao(d_obs, alpha, raiz_C_D, ne, rng):
     return d_obs + np.sqrt(alpha) * ruido
 
 
+def _largura_envelope(M):
+    """Largura do envelope P10-P90 de cada parametro do conjunto."""
+    p10, p90 = np.percentile(M, [10, 90], axis=1)
+
+    return p90 - p10
+
+
 def _resolve(A, B):
     """Resolve A X = B, com pseudo-inversa como reserva se A for singular."""
     try:
@@ -343,6 +359,7 @@ def ieslm(prior, d_obs, g, C_D, gamma0=1.0, max_iter=20, eta1=1e-4, eta2=1e-2,
     res.desajuste.append(O_barra)
     res.alpha.append(alpha)
     res.gamma.append(gamma)
+    res.espalhamento.append(_largura_envelope(M))
 
     melhor_desajuste = O_barra
     melhor_conjunto = M.copy()
@@ -398,6 +415,8 @@ def ieslm(prior, d_obs, g, C_D, gamma0=1.0, max_iter=20, eta1=1e-4, eta2=1e-2,
         res.alpha.append(alpha)
         res.gamma.append(gamma)
         res.rho_mediano.append(float(np.median(rho)))
+        res.rho_por_membro.append(rho.copy())
+        res.espalhamento.append(_largura_envelope(M))
 
         if O_barra < melhor_desajuste:
             melhor_desajuste = O_barra
