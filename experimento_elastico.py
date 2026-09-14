@@ -51,18 +51,17 @@ JANELA_ZOOM = (1.810, 1.822)
 
 def carrega_cenario():
     """Monta dados, modelo direto, ruido, conjunto a priori e limites."""
-    dl = np.loadtxt(os.path.join(dados.DATA_DIR, 'data5log.dat'))
-    ds = np.loadtxt(os.path.join(dados.DATA_DIR, 'data5seis.dat'))
-
-    Time = dl[:, 3:4]
-    Vp, Vs, Rho = dl[:, 4:5], dl[:, 5:6], dl[:, 6:7]
-    dt = float(ds[1, 0] - ds[0, 0])
+    d = dados.carrega_dados()
+    Time, dt = d['Time'], d['dt']
+    Vp, Vs, Rho = d['Vp'], d['Vs'], d['Rho']
 
     verdadeiro = fe.empilha(Vp, Vs, Rho)
     g, _ = fe.monta_forward(Time, dt)
 
-    # O dado do pacote e livre de ruido e foi gerado por este mesmo operador;
-    # sem contaminacao o experimento incorreria em "inverse crime".
+    # Os tracos de data5seis.dat NAO sao usados como observacao. Eles foram
+    # gerados por este mesmo operador, sem ruido; inverte-los configuraria
+    # "inverse crime". O dado observado e produzido a partir do poco, com
+    # ruido de SNR controlada.
     rng_ruido = np.random.default_rng(SEMENTE)
     d_obs, C_D = fe.adiciona_ruido(g(verdadeiro), SNR, rng_ruido)
 

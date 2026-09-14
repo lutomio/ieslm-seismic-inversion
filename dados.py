@@ -74,45 +74,51 @@ if SEREMPY_ROOT not in sys.path:
     sys.path.insert(0, SEREMPY_ROOT)
 
 
+# Os arquivos .dat nao tem cabecalho: a posicao das colunas e a unica fonte de
+# verdade sobre o que cada numero significa. Ficam declaradas aqui, e so aqui.
+COLUNAS_POCO = {'Time': 3, 'Vp': 4, 'Vs': 5, 'Rho': 6}
+COLUNAS_SISMICA = {'TimeSeis': 0, 'Snear': 1, 'Smid': 2, 'Sfar': 3}
+
+
 def carrega_dados():
     """
     CARREGA DADOS
-    Le o poco e a sismica usados no experimento do TCC 2.
+    Ponto unico de leitura dos arquivos de poco e de sismica.
+
+    Todos os modulos obtem os dados por aqui, para que os indices de coluna
+    nao se repitam pelo codigo: um indice trocado em um so lugar (por exemplo,
+    Vs no lugar de rho) passaria despercebido e contaminaria o experimento.
+
+    Os tracos sismicos sao devolvidos, mas o experimento elastico NAO os usa
+    como observacao: ele gera o dado a partir do perfil de poco com ruido de
+    SNR controlada (ver forward_elastico.adiciona_ruido). O experimento
+    acustico, ao contrario, usa Snear diretamente.
 
     Returns
     -------
     dict com as chaves:
         Time : array_like
             Tempo do poco (nm, 1).
-        TimeSeis : array_like
-            Tempo da sismica (nd, 1).
-        Snear : array_like
-            Traco sismico de incidencia proxima (nd, 1) - o dado observado.
-        Vp : array_like
-            Velocidade da onda P (nm, 1).
-        Rho : array_like
-            Densidade (nm, 1).
+        Vp, Vs, Rho : array_like
+            Velocidade da onda P (km/s), da onda S (km/s) e densidade
+            (g/cm3), cada uma (nm, 1). Formam o modelo de referencia.
         Z : array_like
             Impedancia acustica de referencia, Z = Vp * Rho (nm, 1).
+        TimeSeis : array_like
+            Tempo da sismica (nd, 1): ponto medio entre amostras do poco.
+        Snear, Smid, Sfar : array_like
+            Tracos de incidencia proxima, media e distante (15, 30 e 45
+            graus), cada um (nd, 1).
         dt : float
-            Passo de amostragem em tempo (s).
+            Passo de amostragem em tempo (s), tomado do tempo do poco, que e
+            a malha em que o modelo direto opera.
     """
-    ds = np.loadtxt(os.path.join(DATA_DIR, 'data5seis.dat'))
     dl = np.loadtxt(os.path.join(DATA_DIR, 'data5log.dat'))
+    ds = np.loadtxt(os.path.join(DATA_DIR, 'data5seis.dat'))
 
-    TimeSeis = ds[:, 0].reshape(-1, 1)
-    Snear = ds[:, 1].reshape(-1, 1)
+    d = {nome: dl[:, col].reshape(-1, 1) for nome, col in COLUNAS_POCO.items()}
+    d.update({nome: ds[:, col].reshape(-1, 1) for nome, col in COLUNAS_SISMICA.items()})
+    d['Z'] = d['Vp'] * d['Rho']
+    d['dt'] = float(d['Time'][1, 0] - d['Time'][0, 0])
 
-    Time = dl[:, 3].reshape(-1, 1)
-    Vp = dl[:, 4].reshape(-1, 1)
-    Rho = dl[:, 6].reshape(-1, 1)
-
-    return {
-        'Time': Time,
-        'TimeSeis': TimeSeis,
-        'Snear': Snear,
-        'Vp': Vp,
-        'Rho': Rho,
-        'Z': Vp * Rho,
-        'dt': float(TimeSeis[1, 0] - TimeSeis[0, 0]),
-    }
+    return d

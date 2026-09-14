@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """Testes do modelo direto elastico e das metricas de comparacao."""
 
-import os
-
 import numpy as np
 import pytest
 
@@ -14,12 +12,11 @@ import prior
 
 @pytest.fixture(scope='module')
 def poco():
-    dl = np.loadtxt(os.path.join(dados.DATA_DIR, 'data5log.dat'))
-    ds = np.loadtxt(os.path.join(dados.DATA_DIR, 'data5seis.dat'))
+    d = dados.carrega_dados()
     return {
-        'Time': dl[:, 3:4], 'Vp': dl[:, 4:5], 'Vs': dl[:, 5:6], 'Rho': dl[:, 6:7],
-        'dt': float(ds[1, 0] - ds[0, 0]),
-        'obs': np.vstack([ds[:, 1:2], ds[:, 2:3], ds[:, 3:4]]),
+        'Time': d['Time'], 'Vp': d['Vp'], 'Vs': d['Vs'], 'Rho': d['Rho'],
+        'dt': d['dt'],
+        'obs': np.vstack([d['Snear'], d['Smid'], d['Sfar']]),
     }
 
 
