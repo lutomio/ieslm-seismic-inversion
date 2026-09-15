@@ -43,7 +43,7 @@ def tendencia_suave(Z, ordem=3, corte=0.04):
     array_like
         Tendencia (nm, 1).
     """
-    b, a = signal.butter(ordem, corte)
+    b, a = signal.butter(ordem, corte)  # coeficientes do filtro Butterworth
 
     return signal.filtfilt(b, a, np.squeeze(Z)).reshape(-1, 1)
 
@@ -67,8 +67,8 @@ def covariancia_espacial(nm, dt, comprimento_correlacao):
     array_like
         Matriz de correlacao (nm, nm).
     """
-    t = np.arange(nm) * dt
-    distancia = np.abs(t.reshape(-1, 1) - t.reshape(1, -1))
+    t = np.arange(nm) * dt  # instante de cada amostra
+    distancia = np.abs(t.reshape(-1, 1) - t.reshape(1, -1))  # entre cada par
 
     return np.exp(-((distancia / comprimento_correlacao) ** 2))
 
@@ -107,10 +107,10 @@ def conjunto_prior(tendencia, ne, dt, desvio_log=0.05, comprimento_correlacao=No
     if comprimento_correlacao is None:
         comprimento_correlacao = 5 * dt
 
-    C = covariancia_espacial(nm, dt, comprimento_correlacao)
+    C = covariancia_espacial(nm, dt, comprimento_correlacao)  # (nm, nm)
     # Jitter: a covariancia gaussiana e mal condicionada e a Cholesky falha
     # sem uma pequena regularizacao na diagonal.
-    L = np.linalg.cholesky(C + 1e-8 * np.eye(nm))
+    L = np.linalg.cholesky(C + 1e-8 * np.eye(nm))  # L @ z: ruido correlacionado
 
     perturbacao = desvio_log * (L @ rng.standard_normal((nm, ne)))
 
@@ -176,13 +176,14 @@ def conjunto_prior_multivariado(tendencias, ne, dt, sigma0, comprimento_correlac
         `tendencias`.
     """
     rng = np.random.default_rng() if rng is None else rng
-    nm, nv = tendencias.shape
+    nm, nv = tendencias.shape  # amostras no tempo, numero de propriedades
 
     if comprimento_correlacao is None:
         comprimento_correlacao = 5 * dt
 
     C_tempo = covariancia_espacial(nm, dt, comprimento_correlacao)
-    L_tempo = np.linalg.cholesky(C_tempo + 1e-8 * np.eye(nm))
+    L_tempo = np.linalg.cholesky(C_tempo + 1e-8 * np.eye(nm))  # fator no tempo
+    # e o fator entre propriedades, que preserva a correlacao fisica
     L_prop = np.linalg.cholesky(np.atleast_2d(sigma0) + 1e-12 * np.eye(nv))
 
     # z ~ N(0, I) de forma (nv, nm, ne); aplica L_tempo no eixo do tempo e
@@ -191,6 +192,6 @@ def conjunto_prior_multivariado(tendencias, ne, dt, sigma0, comprimento_correlac
     z = np.einsum('ij,jkl->ikl', L_prop, z)
     z = np.einsum('km,imn->ikn', L_tempo, z)
 
-    blocos = [tendencias[:, [i]] + z[i] for i in range(nv)]
+    blocos = [tendencias[:, [i]] + z[i] for i in range(nv)]  # uma propriedade por bloco
 
     return np.vstack(blocos)

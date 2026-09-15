@@ -96,7 +96,8 @@ def covariancias(M, G):
     C_DD : array_like
         Autocovariancia dos dados previstos (nd, nd).
     """
-    ne = M.shape[1]
+    ne = M.shape[1]  # tamanho do conjunto, N_e
+    # desvios de cada membro em relacao a media do conjunto
     dM = M - M.mean(axis=1, keepdims=True)
     dG = G - G.mean(axis=1, keepdims=True)
 
@@ -128,8 +129,8 @@ def desajuste_medio(d_obs, G, C_D_inv):
     float
         O_barra.
     """
-    nd = d_obs.shape[0]
-    R = d_obs - G
+    nd = d_obs.shape[0]  # numero de dados, N_d: normaliza a escala
+    R = d_obs - G  # residuo de cada membro contra o dado observado
 
     return float(np.mean(np.sum(R * (C_D_inv @ R), axis=0)) / (2.0 * nd))
 
@@ -156,7 +157,7 @@ def desajuste_absoluto(d_obs, G, C_D_inv):
     float
         R.
     """
-    R = d_obs - G
+    R = d_obs - G  # mesmo residuo da Eq. 39, aqui sem normalizar
 
     return float(np.mean(np.sum(R * (C_D_inv @ R), axis=0)))
 
@@ -183,7 +184,7 @@ def objetivo_por_membro(d_pert, G, C_D_inv):
     array_like
         Vetor (ne,) com o objetivo de cada membro.
     """
-    R = d_pert - G
+    R = d_pert - G  # residuo contra o dado perturbado do proprio membro
 
     return 0.5 * np.sum(R * (C_D_inv @ R), axis=0)
 
@@ -218,7 +219,7 @@ def _raiz_covariancia(C_D):
         return np.linalg.cholesky(C_D)
     except np.linalg.LinAlgError:
         # C_D semidefinida: cai para a raiz simetrica via decomposicao espectral
-        valores, vetores = np.linalg.eigh(C_D)
+        valores, vetores = np.linalg.eigh(C_D)  # autovalores e autovetores
         valores = np.clip(valores, 0.0, None)
         return vetores @ np.diag(np.sqrt(valores))
 
@@ -251,15 +252,15 @@ def perturba_observacao(d_obs, alpha, raiz_C_D, ne, rng):
     array_like
         Observacoes perturbadas (nd, ne).
     """
-    nd = d_obs.shape[0]
-    ruido = raiz_C_D @ rng.standard_normal((nd, ne))
+    nd = d_obs.shape[0]  # numero de dados
+    ruido = raiz_C_D @ rng.standard_normal((nd, ne))  # correlacionado por C_D
 
     return d_obs + np.sqrt(alpha) * ruido
 
 
 def _largura_envelope(M):
     """Largura do envelope P10-P90 de cada parametro do conjunto."""
-    p10, p90 = np.percentile(M, [10, 90], axis=1)
+    p10, p90 = np.percentile(M, [10, 90], axis=1)  # um par por parametro
 
     return p90 - p10
 
@@ -336,10 +337,10 @@ def ieslm(prior, d_obs, g, C_D, gamma0=1.0, max_iter=20, eta1=1e-4, eta2=1e-2,
     M = np.array(prior, dtype=float, copy=True)
     d_obs = np.asarray(d_obs, dtype=float).reshape(-1, 1)
     C_D = np.asarray(C_D, dtype=float)
-    ne = M.shape[1]
+    ne = M.shape[1]  # tamanho do conjunto, N_e
 
-    C_D_inv = np.linalg.inv(C_D)
-    raiz_C_D = _raiz_covariancia(C_D)
+    C_D_inv = np.linalg.inv(C_D)  # usada em toda avaliacao de objetivo
+    raiz_C_D = _raiz_covariancia(C_D)  # usada para sortear as perturbacoes
 
     def trunca(X):
         if limites is None:
@@ -348,7 +349,7 @@ def ieslm(prior, d_obs, g, C_D, gamma0=1.0, max_iter=20, eta1=1e-4, eta2=1e-2,
 
     M = trunca(M)
     G = g(M)
-    n_aval = 1
+    n_aval = 1  # chamadas ao modelo direto: o custo computacional medido
 
     # Inicializacao do Algoritmo 2: gamma^0 = 1, alpha^0 = gamma^0 * O_barra^0
     O_barra = desajuste_medio(d_obs, G, C_D_inv)
@@ -378,8 +379,8 @@ def ieslm(prior, d_obs, g, C_D, gamma0=1.0, max_iter=20, eta1=1e-4, eta2=1e-2,
         C_MD, C_DD = covariancias(M, G)
 
         # Eq. 32: atualizacao de cada membro
-        R = d_pert - G
-        V = _resolve(C_DD + alpha * C_D, R)
+        R = d_pert - G  # o quanto cada membro erra
+        V = _resolve(C_DD + alpha * C_D, R)  # erro filtrado pela regularizacao
         M_novo = trunca(M + C_MD @ V)
 
         G_novo = g(M_novo)
@@ -399,7 +400,7 @@ def ieslm(prior, d_obs, g, C_D, gamma0=1.0, max_iter=20, eta1=1e-4, eta2=1e-2,
         rho = np.nan_to_num(rho, nan=0.0, posinf=0.0, neginf=0.0)
 
         # Variacao relativa dos parametros, para o criterio eta2
-        norma_M = np.linalg.norm(M)
+        norma_M = np.linalg.norm(M)  # escala do conjunto, para medir a variacao
         var_parametros = (np.linalg.norm(M_novo - M) / norma_M) if norma_M > 0 else 0.0
 
         M, G = M_novo, G_novo

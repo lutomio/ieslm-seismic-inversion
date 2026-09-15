@@ -62,7 +62,7 @@ def desempilha(M):
     tuple of array_like
         (Vp, Vs, Rho), cada um (nm, ne).
     """
-    nm = M.shape[0] // 3
+    nm = M.shape[0] // 3  # amostras por propriedade: M empilha Vp, Vs e rho
 
     return M[:nm], M[nm:2 * nm], M[2 * nm:]
 
@@ -100,8 +100,8 @@ def monta_forward(Time, dt, freq=45, ntw=64, theta=None):
         if M.shape[1] == 1 and M.ndim == 1:
             M = M.reshape(-1, 1)
         Vp, Vs, Rho = desempilha(M)
-        ne = M.shape[1]
-        saidas = []
+        ne = M.shape[1]  # um membro do conjunto por coluna
+        saidas = []      # um traco empilhado por membro
         for j in range(ne):
             seis, _ = SeismicModel(Vp[:, j], Vs[:, j], Rho[:, j], Time, theta, wavelet)
             saidas.append(seis[:, 0])
@@ -126,7 +126,7 @@ def separa_angulos(d):
     list of array_like
         Tres blocos, um por angulo.
     """
-    nd = d.shape[0] // 3
+    nd = d.shape[0] // 3  # amostras por angulo: d empilha Near, Mid e Far
 
     return [d[i * nd:(i + 1) * nd] for i in range(3)]
 
@@ -163,7 +163,7 @@ def adiciona_ruido(d_limpo, snr, rng):
         Covariancia do erro correspondente (nd, nd), coerente com o ruido
         efetivamente adicionado.
     """
-    sigma = float(np.std(d_limpo)) / float(snr)
+    sigma = float(np.std(d_limpo)) / float(snr)  # desvio do ruido
     ruido = sigma * rng.standard_normal(d_limpo.shape)
 
     return d_limpo + ruido, (sigma ** 2) * np.eye(d_limpo.shape[0])

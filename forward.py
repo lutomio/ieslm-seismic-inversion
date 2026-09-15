@@ -62,8 +62,8 @@ def operador_acustico(nm, wavelet):
             '(precisa de len(wavelet) < nm-1 = %d)' % (len(wavelet), nm, nm - 1)
         )
 
-    D = DifferentialMatrix(nm, 1)
-    W = WaveletMatrix(wavelet, nm, 1)
+    D = DifferentialMatrix(nm, 1)  # diferencas ln Z[k+1] - ln Z[k]
+    W = WaveletMatrix(wavelet, nm, 1)  # convolucao com a wavelet
 
     return D, W
 

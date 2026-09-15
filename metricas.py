@@ -55,7 +55,7 @@ def largura_envelope(conjunto, inferior=10, superior=90):
     -------
     float
     """
-    p_inf, p_sup = envelope(conjunto, inferior, superior)
+    p_inf, p_sup = envelope(conjunto, inferior, superior)  # percentis por amostra
 
     return float(np.mean(p_sup - p_inf))
 
@@ -84,8 +84,8 @@ def taxa_cobertura(conjunto, verdadeiro, inferior=10, superior=90):
     float
         Fracao entre 0 e 1.
     """
-    p_inf, p_sup = envelope(conjunto, inferior, superior)
-    v = np.asarray(verdadeiro).ravel()
+    p_inf, p_sup = envelope(conjunto, inferior, superior)  # limites do envelope
+    v = np.asarray(verdadeiro).ravel()  # referencia, achatada para comparar
 
     return float(np.mean((v >= p_inf) & (v <= p_sup)))
 
@@ -113,7 +113,8 @@ def teste_ks(conjunto, verdadeiro):
     tuple of float
         (estatistica, p_valor).
     """
-    r = stats.ks_2samp(np.asarray(conjunto).ravel(), np.asarray(verdadeiro).ravel())
+    r = stats.ks_2samp(  # devolve estatistica e p-valor
+        np.asarray(conjunto).ravel(), np.asarray(verdadeiro).ravel())
 
     return float(r.statistic), float(r.pvalue)
 
@@ -141,6 +142,7 @@ def sequencia_alpha_esmda(n_assimilacoes, razao=2.0):
     array_like
         Vetor com os fatores, em ordem decrescente.
     """
+    # pesos decrescentes; o fator seguinte os normaliza para sum(1/alpha) = 1
     pesos = razao ** np.arange(n_assimilacoes - 1, -1, -1, dtype=float)
 
     return pesos * float(np.sum(1.0 / pesos))
