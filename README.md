@@ -62,6 +62,7 @@ python -m pytest tests/ -v
 | `ieslm.py` | **The algorithm** — Algorithm 2 of Ma & Bi (2019) |
 | `forward.py` | Acoustic forward model, `g(Z) = W (1/2) D ln Z` |
 | `prior.py` | Prior ensemble of impedance profiles |
+| `referencia.py` | Synthetic reference models (layered, smoothed) |
 | `dados.py` | Data loading and SeReMpy lookup |
 | `experimento.py` | iES-LM vs ES-MDA driver and figures |
 | `tests/` | 67 tests, see below |

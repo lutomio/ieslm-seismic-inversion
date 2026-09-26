@@ -49,9 +49,19 @@ COR_MDA, COR_LM, COR_PRIOR = 'tab:blue', 'tab:red', 'tab:gray'
 JANELA_ZOOM = (1.810, 1.822)
 
 
-def carrega_cenario():
-    """Monta dados, modelo direto, ruido, conjunto a priori e limites."""
-    d = dados.carrega_dados()
+def carrega_cenario(modelo=None):
+    """
+    CARREGA CENARIO
+    Monta modelo direto, ruido, conjunto a priori e limites.
+
+    Parameters
+    ----------
+    modelo : dict, optional
+        Modelo de referencia a inverter, no formato de dados.carrega_dados.
+        Por omissao usa o perfil de poco do pacote; passe um modelo de
+        referencia.py para investigar alvos com outra aspereza.
+    """
+    d = dados.carrega_dados() if modelo is None else modelo
     Time, dt = d['Time'], d['dt']
     Vp, Vs, Rho = d['Vp'], d['Vs'], d['Rho']
 
@@ -102,8 +112,8 @@ def roda_esmda(c):
     return M, historico, n_aval, alphas
 
 
-def executa():
-    c = carrega_cenario()
+def executa(modelo=None):
+    c = carrega_cenario(modelo)
 
     print('Inversao sismica elastica - iES-LM x ES-MDA')
     print('conjunto: %d membros | %d amostras | 3 propriedades | 3 angulos'
