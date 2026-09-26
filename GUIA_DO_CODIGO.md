@@ -729,6 +729,79 @@ lado do tamanho do conjunto e do nível de ruído.
 
 ---
 
+### 5.10 `sensibilidade.py` — o estudo de sensibilidade
+
+Atende ao objetivo específico do Cap. 1 (sensibilidade ao tamanho do conjunto
+e ao nível de ruído) e acrescenta um terceiro eixo, a aspereza do alvo.
+
+**O problema que ele resolve é estatístico.** Uma execução única não sustenta
+afirmação nenhuma: a diferença observada pode vir do sorteio do *a priori* e
+do ruído. Aqui cada configuração é repetida com 20 sementes, e em cada
+repetição os dois métodos recebem **exatamente o mesmo cenário**. A comparação
+fica **pareada**: a diferença é medida semente a semente, o que remove a
+variabilidade comum e permite um teste de significância (Wilcoxon de postos
+sinalizados, que não pressupõe normalidade).
+
+| Função | O que faz |
+|---|---|
+| `avalia(ne, snr, alvo, semente)` | Roda os dois métodos sobre o mesmo cenário e devolve uma linha de métricas. |
+| `grade(rapido)` | Configurações: um eixo por vez, os demais no valor de referência ($N_e=200$, SNR $=10$, alvo = poço). |
+| `executa(rapido)` | Percorre a grade, grava o CSV, imprime o resumo e gera as figuras. |
+| `_pareado(sub, metrica)` | Médias, diferença e p-valor do teste pareado. |
+
+Reaproveita `carrega_cenario`, `roda_esmda` e `roda_ieslm` de
+`experimento_elastico.py`, para que não existam duas implementações do mesmo
+protocolo.
+
+```bash
+python sensibilidade.py            # grade completa: 12 configurações x 20 sementes
+python sensibilidade.py --rapido   # grade reduzida, para conferir
+```
+
+As 240 execuções ficam em `resultados/sensibilidade.csv`, uma linha por
+execução, para que as tabelas do texto sejam rastreáveis até o dado bruto.
+
+#### Resultado
+
+Sobre as 240 execuções, comparação pareada:
+
+| Métrica | ES-MDA | iES-LM | Diferença | p |
+|---|---|---|---|---|
+| RMSE de $V_p$ | 0,1422 | 0,1451 | +0,0029 | 0,037 |
+| Cobertura de $V_p$ | 0,560 | 0,632 | +0,072 | $7\times10^{-27}$ |
+| Largura do envelope | 0,174 | 0,223 | +0,050 | $2\times10^{-38}$ |
+| Avaliações de $g$ | 5,00 | 3,08 | −1,92 | — |
+
+Em uma frase: **o iES-LM troca uma estimativa pontual 2% pior por uma
+incerteza bem mais calibrada, a 62% do custo.** A diferença de RMSE é
+significativa, mas minúscula; as de calibração são grandes e com p-valores
+que não deixam dúvida.
+
+Por eixo, o comportamento não é uniforme:
+
+- **Tamanho do conjunto.** Ambos melhoram com $N_e$ e praticamente empatam a
+  partir de 50 membros. Com $N_e = 25$ os dois degradam muito, e a dispersão
+  entre sementes explode — abaixo disso a covariância estimada pelo conjunto
+  deixa de ser confiável.
+- **Nível de ruído.** Aqui aparece a única desvantagem clara do iES-LM: com
+  pouco ruído (SNR 20 e 50) ele **para cedo demais**. O critério da Eq. 43
+  encerra quando $\bar{\mathcal{O}} < 2$, mas o nível de ruído corresponde a
+  $\bar{\mathcal{O}} \approx 0{,}5$. Medido em SNR $=20$: o iES-LM para em
+  1,26 enquanto o ES-MDA chega a 0,53. O limiar $4p$ é quatro vezes mais
+  frouxo que o nível de ruído, e com dado informativo isso custa precisão.
+- **Alvo.** Na direção oposta: em alvos que a sísmica resolve, o iES-LM leva
+  vantagem — no perfil suavizado, RMSE 0,021 contra 0,030 (p $=0{,}005$).
+
+A cobertura do iES-LM é superior em praticamente toda a grade, e a vantagem é
+maior justamente onde o ES-MDA mais se desregula (SNR $=20$: 0,66 contra
+0,50).
+
+**Figuras:** `sensibilidade_eixos.png` (qualidade e calibração ao longo dos
+dois eixos numéricos), `sensibilidade_pareada.png` (distribuição da diferença
+pareada) e `sensibilidade_custo.png` (custo contra qualidade).
+
+---
+
 ## 6. As duas decisões de interpretação
 
 Dois pontos em que o artigo precisou ser interpretado. Ambos estão documentados
@@ -773,6 +846,7 @@ Algoritmo 2, $\alpha^0 = \gamma^0\,\bar{\mathcal{O}}^0$.
 | `test_integracao.py` | Algoritmo no dado sísmico; critérios de parada |
 | `test_experimento.py` | Regressão do experimento acústico |
 | `test_elastico.py` | Modelo elástico, *prior* multivariado, cobertura, KS, sequência de $\alpha_l$ |
+| `test_sensibilidade.py` | Grade, comparação pareada e uma execução reduzida ponta a ponta |
 | `test_referencia.py` | Modelos sintéticos: formato, relações físicas calibradas, número e espessura das camadas, reprodutibilidade e integração com o experimento |
 
 Para rodar:

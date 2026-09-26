@@ -65,6 +65,7 @@ python -m pytest tests/ -v
 | `referencia.py` | Synthetic reference models (layered, smoothed) |
 | `dados.py` | Data loading and SeReMpy lookup |
 | `experimento.py` | iES-LM vs ES-MDA driver and figures |
+| `sensibilidade.py` | Sensitivity study: paired comparison over 240 runs |
 | `tests/` | 67 tests, see below |
 | `data/` | Two data files redistributed from SeReMpy (MIT) |
 

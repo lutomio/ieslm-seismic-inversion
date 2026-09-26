@@ -49,7 +49,7 @@ COR_MDA, COR_LM, COR_PRIOR = 'tab:blue', 'tab:red', 'tab:gray'
 JANELA_ZOOM = (1.810, 1.822)
 
 
-def carrega_cenario(modelo=None):
+def carrega_cenario(modelo=None, ne=NE, snr=SNR, semente=SEMENTE):
     """
     CARREGA CENARIO
     Monta modelo direto, ruido, conjunto a priori e limites.
@@ -60,6 +60,12 @@ def carrega_cenario(modelo=None):
         Modelo de referencia a inverter, no formato de dados.carrega_dados.
         Por omissao usa o perfil de poco do pacote; passe um modelo de
         referencia.py para investigar alvos com outra aspereza.
+    ne : int, optional
+        Tamanho do conjunto.
+    snr : float, optional
+        Razao sinal-ruido usada para contaminar a observacao.
+    semente : int, optional
+        Semente do conjunto a priori e do ruido.
     """
     d = dados.carrega_dados() if modelo is None else modelo
     Time, dt = d['Time'], d['dt']
@@ -72,14 +78,14 @@ def carrega_cenario(modelo=None):
     # gerados por este mesmo operador, sem ruido; inverte-los configuraria
     # "inverse crime". O dado observado e produzido a partir do poco, com
     # ruido de SNR controlada.
-    rng_ruido = np.random.default_rng(SEMENTE)
-    d_obs, C_D = fe.adiciona_ruido(g(verdadeiro), SNR, rng_ruido)
+    rng_ruido = np.random.default_rng(semente)
+    d_obs, C_D = fe.adiciona_ruido(g(verdadeiro), snr, rng_ruido)
 
     # A priori: tendencia de baixa frequencia + realizacoes correlacionadas
     tendencias = np.hstack([prior.tendencia_suave(x) for x in (Vp, Vs, Rho)])
     sigma0 = np.cov(np.hstack([Vp, Vs, Rho]).T)
     conjunto = prior.conjunto_prior_multivariado(
-        tendencias, NE, dt, sigma0, rng=np.random.default_rng(SEMENTE)
+        tendencias, ne, dt, sigma0, rng=np.random.default_rng(semente)
     )
 
     # Limites fisicos por propriedade, com folga sobre a faixa observada
@@ -91,11 +97,12 @@ def carrega_cenario(modelo=None):
                 C_D=C_D, prior=conjunto, limites=(lo, hi), nm=nm)
 
 
-def roda_esmda(c):
+def roda_esmda(c, niter=NITER_MDA, semente=SEMENTE):
     """ES-MDA com sequencia decrescente de fatores de inflacao."""
-    np.random.seed(SEMENTE)
+    # EnsembleSmootherMDA sorteia com o gerador global do numpy
+    np.random.seed(semente)
     C_D_inv = np.linalg.inv(c['C_D'])
-    alphas = mt.sequencia_alpha_esmda(NITER_MDA)
+    alphas = mt.sequencia_alpha_esmda(niter)
 
     M = c['prior'].copy()
     G = c['g'](M)
@@ -112,6 +119,16 @@ def roda_esmda(c):
     return M, historico, n_aval, alphas
 
 
+def roda_ieslm(c, semente=SEMENTE, max_iter=MAX_ITER_LM):
+    """iES-LM com regularizacao adaptativa e parada no nivel do ruido."""
+    return ieslm.ieslm(
+        prior=c['prior'], d_obs=c['d_obs'], g=c['g'], C_D=c['C_D'],
+        gamma0=1.0, max_iter=max_iter, eta1=1e-4, eta2=1e-2,
+        limites=c['limites'], fator_ruido=FATOR_RUIDO,
+        rng=np.random.default_rng(semente),
+    )
+
+
 def executa(modelo=None):
     c = carrega_cenario(modelo)
 
@@ -124,12 +141,7 @@ def executa(modelo=None):
 
     Z_mda, hist_mda, aval_mda, alphas = roda_esmda(c)
 
-    res_lm = ieslm.ieslm(
-        prior=c['prior'], d_obs=c['d_obs'], g=c['g'], C_D=c['C_D'],
-        gamma0=1.0, max_iter=MAX_ITER_LM, eta1=1e-4, eta2=1e-2,
-        limites=c['limites'], fator_ruido=FATOR_RUIDO,
-        rng=np.random.default_rng(SEMENTE),
-    )
+    res_lm = roda_ieslm(c)
     Z_lm = res_lm.conjunto
 
     _tabela(c, Z_mda, hist_mda, aval_mda, res_lm, Z_lm, alphas)
