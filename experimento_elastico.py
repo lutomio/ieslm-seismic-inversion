@@ -98,6 +98,9 @@ def carrega_cenario(cfg=None, modelo=None):
         prior.tendencia_suave(x, ordem=cfg.ordem_tendencia, corte=cfg.corte_tendencia)
         for x in (Vp, Vs, Rho)
     ])
+    # Vies opcional: a tendencia (baixa frequencia) do a priori deslocada.
+    # Com vies_prior = 0 o fator e exatamente 1 e nada muda.
+    tendencias = tendencias * (1.0 + cfg.vies_prior)
     sigma0 = np.cov(np.hstack([Vp, Vs, Rho]).T)
     conjunto = prior.conjunto_prior_multivariado(
         tendencias, cfg.ne, dt, sigma0,

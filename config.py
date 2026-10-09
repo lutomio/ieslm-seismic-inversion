@@ -60,6 +60,11 @@ class Configuracao:
         Comprimento de correlacao vertical do a priori, em multiplos de dt.
     ordem_tendencia, corte_tendencia : int, float
         Filtro Butterworth que define a tendencia (media) do a priori.
+    vies_prior : float
+        Deslocamento relativo da tendencia do a priori: -0.05 a coloca 5%
+        abaixo da tendencia verdadeira. Simula um conhecimento previo errado
+        da baixa frequencia, que a sismica limitada em banda nao corrige.
+        Zero reproduz o a priori sem vies.
     folga_inferior, folga_superior : float
         Limites fisicos: multiplicadores do minimo e do maximo de cada
         propriedade no modelo de referencia.
@@ -95,6 +100,7 @@ class Configuracao:
     comprimento_correlacao: float = 5.0
     ordem_tendencia: int = 3
     corte_tendencia: float = 0.04
+    vies_prior: float = 0.0
 
     # limites fisicos
     folga_inferior: float = 0.7
@@ -145,6 +151,7 @@ def _valida(cfg):
     exige(cfg.comprimento_correlacao > 0, 'comprimento_correlacao precisa ser positivo')
     exige(cfg.ordem_tendencia >= 1, 'ordem_tendencia precisa ser ao menos 1')
     exige(0 < cfg.corte_tendencia < 1, 'corte_tendencia precisa estar entre 0 e 1')
+    exige(-0.5 < cfg.vies_prior < 0.5, 'vies_prior precisa estar entre -0,5 e 0,5')
     exige(0 < cfg.folga_inferior <= 1, 'folga_inferior precisa estar em (0, 1]')
     exige(cfg.folga_superior >= 1, 'folga_superior precisa ser ao menos 1')
     exige(cfg.n_assimilacoes >= 1, 'n_assimilacoes precisa ser ao menos 1')

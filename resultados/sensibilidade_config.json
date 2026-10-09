@@ -13,6 +13,7 @@
     "comprimento_correlacao": 5.0,
     "ordem_tendencia": 3,
     "corte_tendencia": 0.04,
+    "vies_prior": 0.0,
     "folga_inferior": 0.7,
     "folga_superior": 1.3,
     "n_assimilacoes": 4,
@@ -25,33 +26,91 @@
     "alvo": "poço"
   },
   "extra": {
-    "tamanhos": [
-      25,
-      50,
-      100,
-      200,
-      400
-    ],
-    "ruidos": [
-      2.0,
-      5.0,
-      10.0,
-      20.0,
-      50.0
-    ],
-    "alvos": [
-      "12 camadas",
-      "6 camadas",
-      "poço",
-      "suavizado"
-    ],
-    "assimilacoes": [
-      1,
-      2,
-      3,
-      4,
-      6
-    ],
+    "eixos": {
+      "ne": [
+        25,
+        50,
+        100,
+        200,
+        400
+      ],
+      "snr": [
+        2.0,
+        5.0,
+        10.0,
+        20.0,
+        50.0
+      ],
+      "alvo": [
+        "poço",
+        "6 camadas",
+        "12 camadas",
+        "suavizado"
+      ],
+      "na": [
+        1,
+        2,
+        3,
+        4,
+        6
+      ],
+      "fator_ruido": [
+        0.5,
+        1.0,
+        2.0,
+        4.0,
+        8.0
+      ],
+      "gamma0": [
+        0.1,
+        0.25,
+        0.5,
+        1.0,
+        2.0
+      ],
+      "vies_prior": [
+        -0.08,
+        -0.05,
+        -0.02,
+        0.0
+      ],
+      "angulo_max": [
+        30.0,
+        45.0,
+        60.0
+      ]
+    },
+    "grades_cruzadas": {
+      "ne_snr": {
+        "ne": [
+          50,
+          100,
+          200,
+          400
+        ],
+        "snr": [
+          2.0,
+          5.0,
+          10.0,
+          20.0,
+          50.0
+        ]
+      },
+      "fator_snr": {
+        "fator_ruido": [
+          1.0,
+          2.0,
+          4.0,
+          8.0
+        ],
+        "snr": [
+          5.0,
+          10.0,
+          20.0,
+          50.0
+        ]
+      }
+    },
     "sementes": 20
   }
 }

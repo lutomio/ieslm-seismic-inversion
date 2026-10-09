@@ -187,3 +187,44 @@ def test_chamada_antiga_com_modelo_posicional_falha_com_mensagem_clara():
     import dados
     with pytest.raises(TypeError, match='modelo='):
         X.carrega_cenario(dados.carrega_dados())
+
+
+# ------------------------------------------------------- etapa 3: novos campos ---
+
+def test_vies_zero_reproduz_o_a_priori_sem_vies():
+    sem = X.carrega_cenario()
+    zero = X.carrega_cenario(dataclasses.replace(PADRAO, vies_prior=0.0))
+
+    np.testing.assert_array_equal(sem['prior'], zero['prior'])
+
+
+def test_vies_desloca_a_media_do_a_priori():
+    """-5% desloca a media do conjunto em cerca de 5%, sem mudar o espalhamento."""
+    sem = X.carrega_cenario(dataclasses.replace(PADRAO, ne=2000))
+    com = X.carrega_cenario(dataclasses.replace(PADRAO, ne=2000, vies_prior=-0.05))
+
+    razao = com['prior'].mean() / sem['prior'].mean()
+    assert razao == pytest.approx(0.95, abs=0.005)
+    np.testing.assert_allclose(com['prior'].std(axis=1), sem['prior'].std(axis=1), rtol=1e-9)
+
+
+def test_vies_nao_altera_o_alvo_nem_o_dado():
+    sem = X.carrega_cenario()
+    com = X.carrega_cenario(dataclasses.replace(PADRAO, vies_prior=-0.08))
+
+    np.testing.assert_array_equal(sem['verdadeiro'], com['verdadeiro'])
+    np.testing.assert_array_equal(sem['d_obs'], com['d_obs'])
+
+
+@pytest.mark.parametrize('vies', [-0.5, 0.5, 0.9])
+def test_vies_fora_da_faixa_e_rejeitado(vies):
+    with pytest.raises(ValueError, match='vies_prior'):
+        dataclasses.replace(PADRAO, vies_prior=vies)
+
+
+def test_angulos_padrao_reproduzem_o_modelo_direto():
+    """Passar os angulos explicitamente da exatamente o dado de antes."""
+    padrao = X.carrega_cenario()
+    explicito = X.carrega_cenario(dataclasses.replace(PADRAO, angulos=(15, 30, 45)))
+
+    np.testing.assert_array_equal(padrao['d_obs'], explicito['d_obs'])
