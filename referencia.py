@@ -163,3 +163,41 @@ def suaviza(modelo, corte=0.15, ordem=3):
     gardner = float(np.mean(modelo['Rho'] / modelo['Vp'] ** 0.25))
 
     return _monta(modelo['Time'], Vp, modelo['dt'], razao, gardner)
+
+
+# Nomes aceitos pelo campo `alvo` da Configuracao. 'poço' e o perfil do
+# pacote; os demais sao sinteticos e mudam com a semente.
+ALVOS = ('poço', '6 camadas', '12 camadas', 'suavizado')
+
+
+def alvo_por_nome(nome, semente):
+    """
+    ALVO POR NOME
+    Modelo de referencia correspondente a um nome de ALVOS.
+
+    Parameters
+    ----------
+    nome : str
+        Um dos nomes de ALVOS.
+    semente : int
+        Semente da execucao. Os alvos sinteticos usam 1000 + semente, para
+        que o sorteio do alvo seja independente do sorteio do a priori.
+
+    Returns
+    -------
+    dict or None
+        O modelo, no formato de dados.carrega_dados; None para 'poço', que
+        sinaliza ao experimento que use o perfil do pacote.
+    """
+    if nome == 'poço':
+        return None
+
+    rng = np.random.default_rng(1000 + semente)
+    if nome == '6 camadas':
+        return modelo_em_camadas(n_camadas=6, rng=rng)
+    if nome == '12 camadas':
+        return modelo_em_camadas(n_camadas=12, rng=rng)
+    if nome == 'suavizado':
+        return suaviza(modelo_em_camadas(n_camadas=6, rng=rng))
+
+    raise ValueError('alvo desconhecido: %s' % nome)

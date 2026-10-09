@@ -24,22 +24,24 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
+import config
 import dados
 import forward_elastico as fe
 import ieslm
 import metricas as mt
 from ieslm import fator_lm as mt_fator
 import prior
+import referencia as ref
 from SeReMpy.Inversion import EnsembleSmootherMDA
 
 PASTA_FIGURAS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'figuras')
 
-NE = 200           # tamanho do conjunto
-NITER_MDA = 4      # assimilacoes do ES-MDA
-MAX_ITER_LM = 10   # iteracoes maximas do iES-LM
-SNR = 10.0         # razao sinal-ruido usada para contaminar o dado
-FATOR_RUIDO = 4.0  # criterio de parada da Eq. 43
-SEMENTE = 42
+PASTA_RESULTADOS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resultados')
+
+# As entradas do experimento (tamanho do conjunto, SNR, numero de
+# assimilacoes, gamma inicial, ...) ficam em config.py. Para mudar uma delas:
+#     cfg = dataclasses.replace(config.PADRAO, snr=20.0)
+#     executa(cfg)
 
 COR_MDA, COR_LM, COR_PRIOR = 'tab:blue', 'tab:red', 'tab:gray'
 
@@ -49,60 +51,78 @@ COR_MDA, COR_LM, COR_PRIOR = 'tab:blue', 'tab:red', 'tab:gray'
 JANELA_ZOOM = (1.810, 1.822)
 
 
-def carrega_cenario(modelo=None, ne=NE, snr=SNR, semente=SEMENTE):
+def carrega_cenario(cfg=None, modelo=None):
     """
     CARREGA CENARIO
     Monta modelo direto, ruido, conjunto a priori e limites.
 
     Parameters
     ----------
+    cfg : config.Configuracao, optional
+        Entradas da execucao. Por omissao, config.PADRAO.
     modelo : dict, optional
-        Modelo de referencia a inverter, no formato de dados.carrega_dados.
-        Por omissao usa o perfil de poco do pacote; passe um modelo de
-        referencia.py para investigar alvos com outra aspereza.
-    ne : int, optional
-        Tamanho do conjunto.
-    snr : float, optional
-        Razao sinal-ruido usada para contaminar a observacao.
-    semente : int, optional
-        Semente do conjunto a priori e do ruido.
+        Modelo de referencia explicito, no formato de dados.carrega_dados.
+        Tem precedencia sobre cfg.alvo; serve para inverter um modelo
+        construido a mao, fora dos alvos nomeados.
+
+    Returns
+    -------
+    dict
+        O cenario. A chave 'cfg' guarda a configuracao, que roda_esmda e
+        roda_ieslm leem para saber como rodar.
     """
+    if isinstance(cfg, dict):
+        # Antes da Configuracao, o primeiro argumento era o modelo de referencia.
+        raise TypeError('o primeiro argumento agora e a configuracao; para passar '
+                        'um modelo de referencia use modelo=...')
+    cfg = config.PADRAO if cfg is None else cfg
+    if modelo is None:
+        modelo = ref.alvo_por_nome(cfg.alvo, cfg.semente)
     d = dados.carrega_dados() if modelo is None else modelo
     Time, dt = d['Time'], d['dt']
     Vp, Vs, Rho = d['Vp'], d['Vs'], d['Rho']
 
     verdadeiro = fe.empilha(Vp, Vs, Rho)
-    g, _ = fe.monta_forward(Time, dt)
+    g, _ = fe.monta_forward(Time, dt, freq=cfg.freq_wavelet,
+                            ntw=cfg.amostras_wavelet, theta=cfg.angulos)
 
     # Os tracos de data5seis.dat NAO sao usados como observacao. Eles foram
     # gerados por este mesmo operador, sem ruido; inverte-los configuraria
     # "inverse crime". O dado observado e produzido a partir do poco, com
     # ruido de SNR controlada.
-    rng_ruido = np.random.default_rng(semente)
-    d_obs, C_D = fe.adiciona_ruido(g(verdadeiro), snr, rng_ruido)
+    rng_ruido = np.random.default_rng(cfg.semente)
+    d_obs, C_D = fe.adiciona_ruido(g(verdadeiro), cfg.snr, rng_ruido)
 
     # A priori: tendencia de baixa frequencia + realizacoes correlacionadas
-    tendencias = np.hstack([prior.tendencia_suave(x) for x in (Vp, Vs, Rho)])
+    tendencias = np.hstack([
+        prior.tendencia_suave(x, ordem=cfg.ordem_tendencia, corte=cfg.corte_tendencia)
+        for x in (Vp, Vs, Rho)
+    ])
     sigma0 = np.cov(np.hstack([Vp, Vs, Rho]).T)
     conjunto = prior.conjunto_prior_multivariado(
-        tendencias, ne, dt, sigma0, rng=np.random.default_rng(semente)
+        tendencias, cfg.ne, dt, sigma0,
+        comprimento_correlacao=cfg.comprimento_correlacao * dt,
+        rng=np.random.default_rng(cfg.semente),
     )
 
     # Limites fisicos por propriedade, com folga sobre a faixa observada
     nm = Vp.shape[0]
-    lo = np.vstack([np.full((nm, 1), 0.7 * float(x.min())) for x in (Vp, Vs, Rho)])
-    hi = np.vstack([np.full((nm, 1), 1.3 * float(x.max())) for x in (Vp, Vs, Rho)])
+    lo = np.vstack([np.full((nm, 1), cfg.folga_inferior * float(x.min()))
+                    for x in (Vp, Vs, Rho)])
+    hi = np.vstack([np.full((nm, 1), cfg.folga_superior * float(x.max()))
+                    for x in (Vp, Vs, Rho)])
 
     return dict(Time=Time, dt=dt, verdadeiro=verdadeiro, g=g, d_obs=d_obs,
-                C_D=C_D, prior=conjunto, limites=(lo, hi), nm=nm)
+                C_D=C_D, prior=conjunto, limites=(lo, hi), nm=nm, cfg=cfg)
 
 
-def roda_esmda(c, niter=NITER_MDA, semente=SEMENTE):
+def roda_esmda(c):
     """ES-MDA com sequencia decrescente de fatores de inflacao."""
+    cfg = c['cfg']
     # EnsembleSmootherMDA sorteia com o gerador global do numpy
-    np.random.seed(semente)
+    np.random.seed(cfg.semente)
     C_D_inv = np.linalg.inv(c['C_D'])
-    alphas = mt.sequencia_alpha_esmda(niter)
+    alphas = mt.sequencia_alpha_esmda(cfg.n_assimilacoes, razao=cfg.razao_alpha)
 
     M = c['prior'].copy()
     G = c['g'](M)
@@ -119,24 +139,42 @@ def roda_esmda(c, niter=NITER_MDA, semente=SEMENTE):
     return M, historico, n_aval, alphas
 
 
-def roda_ieslm(c, semente=SEMENTE, max_iter=MAX_ITER_LM):
+def roda_ieslm(c):
     """iES-LM com regularizacao adaptativa e parada no nivel do ruido."""
+    cfg = c['cfg']
     return ieslm.ieslm(
         prior=c['prior'], d_obs=c['d_obs'], g=c['g'], C_D=c['C_D'],
-        gamma0=1.0, max_iter=max_iter, eta1=1e-4, eta2=1e-2,
-        limites=c['limites'], fator_ruido=FATOR_RUIDO,
-        rng=np.random.default_rng(semente),
+        gamma0=cfg.gamma0, max_iter=cfg.max_iter, eta1=cfg.eta1, eta2=cfg.eta2,
+        limites=c['limites'], fator_ruido=cfg.fator_ruido,
+        rng=np.random.default_rng(cfg.semente),
     )
 
 
-def executa(modelo=None):
-    c = carrega_cenario(modelo)
+def executa(cfg=None, modelo=None):
+    """
+    EXECUTA
+    Roda os dois metodos, imprime a tabela, gera as figuras e grava a
+    configuracao usada em resultados/experimento_elastico_config.json.
+
+    Parameters
+    ----------
+    cfg : config.Configuracao, optional
+        Entradas da execucao. Por omissao, config.PADRAO.
+    modelo : dict, optional
+        Modelo de referencia explicito (ver carrega_cenario).
+    """
+    c = carrega_cenario(cfg, modelo)
+    cfg = c['cfg']
+
+    os.makedirs(PASTA_RESULTADOS, exist_ok=True)
+    config.salva(cfg, os.path.join(PASTA_RESULTADOS, 'experimento_elastico_config.json'),
+                 modelo_externo=modelo is not None)
 
     print('Inversao sismica elastica - iES-LM x ES-MDA')
-    print('conjunto: %d membros | %d amostras | 3 propriedades | 3 angulos'
-          % (NE, c['nm']))
+    print('conjunto: %d membros | %d amostras | 3 propriedades | %d angulos'
+          % (cfg.ne, c['nm'], len(cfg.angulos)))
     print('ruido adicionado: SNR = %.0f  (desvio = %.2e)'
-          % (SNR, np.sqrt(c['C_D'][0, 0])))
+          % (cfg.snr, np.sqrt(c['C_D'][0, 0])))
     print()
 
     Z_mda, hist_mda, aval_mda, alphas = roda_esmda(c)
@@ -243,6 +281,7 @@ def _painel_detalhe(ax, Time, verd, conjuntos, titulo, xlabel, zoom):
 
 
 def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm):
+    cfg = c['cfg']
     os.makedirs(PASTA_FIGURAS, exist_ok=True)
     Time = c['Time']
     verd = fe.desempilha(c['verdadeiro'])
@@ -321,7 +360,7 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm):
     ax1.set_xticks(it)
     ax1.set_xlabel('Iteração')
     ax1.set_ylabel(r'Razão de ganho $\rho_j$')
-    ax1.set_title(r'Distribuição de $\rho_j$ entre os %d membros' % NE)
+    ax1.set_title(r'Distribuição de $\rho_j$ entre os %d membros' % cfg.ne)
     ax1.grid(alpha=0.3)
     ax1.legend(fontsize=8, loc='lower right')
     todos = np.concatenate(rhos)
@@ -353,11 +392,15 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm):
     plt.close(fig)
 
     # Figura 5: residuos sismicos por angulo
-    fig, eixos = plt.subplots(1, 3, figsize=(13, 4.6), sharey=True)
-    obs = fe.separa_angulos(c['d_obs'])
-    for i, (ax, nome) in enumerate(zip(eixos, fe.NOMES_ANGULOS)):
+    n_ang = len(cfg.angulos)
+    fig, eixos = plt.subplots(1, n_ang, figsize=(4.4 * n_ang, 4.6), sharey=True,
+                              squeeze=False)
+    eixos = eixos[0]
+    obs = fe.separa_angulos(c['d_obs'], n_ang)
+    for i, ax in enumerate(eixos):
+        nome = fe.nome_angulo(cfg.angulos[i], i, n_ang)
         for M, cor, rot in [(Z_mda, COR_MDA, 'ES-MDA'), (Z_lm, COR_LM, 'iES-LM')]:
-            pred = fe.separa_angulos(c['g'](M))[i].mean(axis=1)
+            pred = fe.separa_angulos(c['g'](M), n_ang)[i].mean(axis=1)
             ax.plot(obs[i].ravel() - pred, np.arange(len(pred)), color=cor, lw=1.2,
                     label=rot)
         ax.axvline(0, color='k', lw=0.8, ls='--')
@@ -386,7 +429,7 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm):
 
     ax2.semilogy(range(len(res_lm.alpha)), res_lm.alpha, 's-', color=COR_LM,
                  label=r'$\alpha^i$ adaptativo (iES-LM)')
-    alphas = mt.sequencia_alpha_esmda(NITER_MDA)
+    alphas = mt.sequencia_alpha_esmda(cfg.n_assimilacoes, razao=cfg.razao_alpha)
     ax2.semilogy(range(1, len(alphas) + 1), alphas, 'o--', color=COR_MDA,
                  label=r'$\alpha_l$ decrescente (ES-MDA)')
     ax2.set_xlabel('Iteração')

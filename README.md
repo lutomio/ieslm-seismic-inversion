@@ -55,11 +55,30 @@ The test suite:
 python -m pytest tests/ -v
 ```
 
+## Changing the inputs
+
+Every input of the elastic experiment — ensemble size, noise level, wavelet,
+incidence angles, prior settings, number of ES-MDA assimilations, iES-LM
+parameters, reference model — lives in `config.py`. Change one without
+editing any other file:
+
+```python
+from dataclasses import replace
+import config, experimento_elastico
+
+cfg = replace(config.PADRAO, snr=20.0, ne=100, angulos=(10, 35))
+experimento_elastico.executa(cfg)
+```
+
+Invalid values are rejected with a message listing every problem. Each run
+writes the configuration it used to `resultados/experimento_elastico_config.json`.
+
 ## Layout
 
 | File | Contents |
 |---|---|
 | `ieslm.py` | **The algorithm** — Algorithm 2 of Ma & Bi (2019) |
+| `config.py` | All experiment inputs in one place (`Configuracao`) |
 | `forward.py` | Acoustic forward model, `g(Z) = W (1/2) D ln Z` |
 | `prior.py` | Prior ensemble of impedance profiles |
 | `referencia.py` | Synthetic reference models (layered, smoothed) |

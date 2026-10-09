@@ -26,6 +26,7 @@ Uso:
 import os
 import sys
 import time
+from dataclasses import replace
 
 import matplotlib
 matplotlib.use('Agg')
@@ -33,6 +34,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
 
+import config
 import experimento_elastico as X
 import forward_elastico as fe
 import metricas as mt
@@ -43,32 +45,16 @@ PASTA_RESULTADOS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'res
 
 # Eixos do estudo. Cada um varia um fator com os demais fixos nos valores de
 # referencia (NE = 200, SNR = 10, alvo = poco do pacote).
+# Ponto de referencia: os eixos variam a partir dele. Todas as demais
+# entradas (gamma inicial, numero de assimilacoes, ...) vem dele tambem.
+REF = config.PADRAO
+
 TAMANHOS = (25, 50, 100, 200, 400)
 RUIDOS = (2.0, 5.0, 10.0, 20.0, 50.0)
-ALVOS = ('poço', '6 camadas', '12 camadas', 'suavizado')
+ALVOS = ref.ALVOS
 
 N_SEMENTES = 20
 COR_MDA, COR_LM = X.COR_MDA, X.COR_LM
-
-
-def constroi_alvo(nome, semente):
-    """
-    CONSTROI ALVO
-    Modelo de referencia correspondente ao nome pedido.
-
-    O poco do pacote e fixo; os sinteticos sao sorteados, e mudam com a
-    semente, de modo que a repeticao cobre tambem a variabilidade do alvo.
-    """
-    if nome == 'poço':
-        return None  # carrega_cenario usa o perfil do pacote
-    rng = np.random.default_rng(1000 + semente)
-    if nome == '6 camadas':
-        return ref.modelo_em_camadas(n_camadas=6, rng=rng)
-    if nome == '12 camadas':
-        return ref.modelo_em_camadas(n_camadas=12, rng=rng)
-    if nome == 'suavizado':
-        return ref.suaviza(ref.modelo_em_camadas(n_camadas=6, rng=rng))
-    raise ValueError('alvo desconhecido: %s' % nome)
 
 
 def avalia(ne, snr, alvo, semente):
@@ -92,11 +78,11 @@ def avalia(ne, snr, alvo, semente):
     dict
         Uma linha de resultado, com as metricas de ambos os metodos.
     """
-    c = X.carrega_cenario(modelo=constroi_alvo(alvo, semente),
-                          ne=ne, snr=snr, semente=semente)
+    cfg = replace(REF, ne=ne, snr=snr, alvo=alvo, semente=semente)
+    c = X.carrega_cenario(cfg)
 
-    M_mda, hist_mda, aval_mda, _ = X.roda_esmda(c, semente=semente)
-    res_lm = X.roda_ieslm(c, semente=semente)
+    M_mda, hist_mda, aval_mda, _ = X.roda_esmda(c)
+    res_lm = X.roda_ieslm(c)
 
     verd = fe.desempilha(c['verdadeiro'])
     linha = {'ne': ne, 'snr': snr, 'alvo': alvo, 'semente': semente,
@@ -129,11 +115,11 @@ def grade(rapido=False):
 
     configs = set()
     for ne in tamanhos:
-        configs.add((ne, X.SNR, 'poço'))
+        configs.add((ne, REF.snr, 'poço'))
     for snr in ruidos:
-        configs.add((X.NE, snr, 'poço'))
+        configs.add((REF.ne, snr, 'poço'))
     for alvo in alvos:
-        configs.add((X.NE, X.SNR, alvo))
+        configs.add((REF.ne, REF.snr, alvo))
 
     return sorted(configs), n_sem
 
@@ -153,6 +139,11 @@ def executa(rapido=False):
               % (k, len(configs), ne, snr, alvo, time.time() - t0))
 
     salva(linhas)
+    config.salva(REF, os.path.join(PASTA_RESULTADOS, 'sensibilidade_config.json'),
+                 tamanhos=sorted({l['ne'] for l in linhas}),
+                 ruidos=sorted({l['snr'] for l in linhas}),
+                 alvos=sorted({l['alvo'] for l in linhas}),
+                 sementes=n_sem)
     _resumo(linhas)
     _figuras(linhas)
 
@@ -207,11 +198,11 @@ def _resumo(linhas):
     cab = ('%-14s %15s %15s %8s %8s' % ('', 'ES-MDA', 'iES-LM', 'dif.', 'p'))
     for titulo, chave, valores, fixos in (
             ('Tamanho do conjunto', 'ne', sorted({l['ne'] for l in linhas}),
-             {'snr': X.SNR, 'alvo': 'poço'}),
+             {'snr': REF.snr, 'alvo': 'poço'}),
             ('Nivel de ruido (SNR)', 'snr', sorted({l['snr'] for l in linhas}),
-             {'ne': X.NE, 'alvo': 'poço'}),
+             {'ne': REF.ne, 'alvo': 'poço'}),
             ('Alvo', 'alvo', [a for a in ALVOS if any(l['alvo'] == a for l in linhas)],
-             {'ne': X.NE, 'snr': X.SNR})):
+             {'ne': REF.ne, 'snr': REF.snr})):
         print('\n=== %s — RMSE de Vp (media +- desvio entre sementes) ===' % titulo)
         print(cab)
         for v in valores:
@@ -222,7 +213,7 @@ def _resumo(linhas):
 
     print('\n=== Custo: avaliacoes do modelo direto ===')
     for v in sorted({l['ne'] for l in linhas}):
-        sub = _filtra(linhas, ne=v, snr=X.SNR, alvo='poço')
+        sub = _filtra(linhas, ne=v, snr=REF.snr, alvo='poço')
         if sub:
             print('  ne=%3d   ES-MDA %.1f   iES-LM %.1f'
                   % (v, np.mean([l['aval_mda'] for l in sub]),
@@ -254,25 +245,25 @@ def _figuras(linhas):
 
     # Figura 1: os dois eixos numericos, em qualidade e em calibracao
     fig, eixos = plt.subplots(2, 2, figsize=(12, 8))
-    _painel_eixo(eixos[0, 0], linhas, 'ne', nes, {'snr': X.SNR, 'alvo': 'poço'},
+    _painel_eixo(eixos[0, 0], linhas, 'ne', nes, {'snr': REF.snr, 'alvo': 'poço'},
                  'rmse_Vp', r'RMSE de $V_p$ (km/s)')
     eixos[0, 0].set_title('Qualidade × tamanho do conjunto')
     eixos[0, 0].set_xlabel(r'$N_e$')
     eixos[0, 0].legend(fontsize=8)
 
-    _painel_eixo(eixos[0, 1], linhas, 'snr', snrs, {'ne': X.NE, 'alvo': 'poço'},
+    _painel_eixo(eixos[0, 1], linhas, 'snr', snrs, {'ne': REF.ne, 'alvo': 'poço'},
                  'rmse_Vp', r'RMSE de $V_p$ (km/s)')
     eixos[0, 1].set_title('Qualidade × nível de ruído')
     eixos[0, 1].set_xlabel('SNR')
 
-    _painel_eixo(eixos[1, 0], linhas, 'ne', nes, {'snr': X.SNR, 'alvo': 'poço'},
+    _painel_eixo(eixos[1, 0], linhas, 'ne', nes, {'snr': REF.snr, 'alvo': 'poço'},
                  'cob_Vp', r'Cobertura de $V_p$')
     eixos[1, 0].axhline(0.8, color='k', ls=':', lw=1.2, label='calibração ideal (0,8)')
     eixos[1, 0].set_title('Calibração × tamanho do conjunto')
     eixos[1, 0].set_xlabel(r'$N_e$')
     eixos[1, 0].legend(fontsize=8)
 
-    _painel_eixo(eixos[1, 1], linhas, 'snr', snrs, {'ne': X.NE, 'alvo': 'poço'},
+    _painel_eixo(eixos[1, 1], linhas, 'snr', snrs, {'ne': REF.ne, 'alvo': 'poço'},
                  'cob_Vp', r'Cobertura de $V_p$')
     eixos[1, 1].axhline(0.8, color='k', ls=':', lw=1.2)
     eixos[1, 1].set_title('Calibração × nível de ruído')
@@ -287,10 +278,10 @@ def _figuras(linhas):
     # Figura 2: diferenca pareada, que e o que sustenta (ou nao) a comparacao
     fig, eixos = plt.subplots(1, 3, figsize=(13, 4.6))
     for ax, (chave, valores, fixos, rotulo) in zip(eixos, (
-            ('ne', nes, {'snr': X.SNR, 'alvo': 'poço'}, r'$N_e$'),
-            ('snr', snrs, {'ne': X.NE, 'alvo': 'poço'}, 'SNR'),
+            ('ne', nes, {'snr': REF.snr, 'alvo': 'poço'}, r'$N_e$'),
+            ('snr', snrs, {'ne': REF.ne, 'alvo': 'poço'}, 'SNR'),
             ('alvo', [a for a in ALVOS if any(l['alvo'] == a for l in linhas)],
-             {'ne': X.NE, 'snr': X.SNR}, 'alvo'))):
+             {'ne': REF.ne, 'snr': REF.snr}, 'alvo'))):
         dados_cx, rotulos = [], []
         for v in valores:
             sub = _filtra(linhas, **dict(fixos, **{chave: v}))
@@ -316,7 +307,7 @@ def _figuras(linhas):
     # Figura 3: custo contra qualidade
     fig, ax = plt.subplots(figsize=(6.5, 5))
     for sufixo, cor, nome in (('mda', COR_MDA, 'ES-MDA'), ('lm', COR_LM, 'iES-LM')):
-        sub = _filtra(linhas, snr=X.SNR, alvo='poço')
+        sub = _filtra(linhas, snr=REF.snr, alvo='poço')
         ax.scatter([l['aval_%s' % sufixo] for l in sub],
                    [l['rmse_Vp_%s' % sufixo] for l in sub],
                    s=[0.12 * l['ne'] for l in sub], color=cor, alpha=0.45,

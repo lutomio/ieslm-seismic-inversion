@@ -4,6 +4,7 @@
 import numpy as np
 import pytest
 
+import config
 import dados
 import experimento_elastico as X
 import forward_elastico as fe
@@ -135,7 +136,7 @@ def test_o_experimento_aceita_um_modelo_sintetico():
 
     np.testing.assert_array_equal(c['verdadeiro'], fe.empilha(m['Vp'], m['Vs'], m['Rho']))
     assert c['d_obs'].shape == (3 * (99 - 1), 1)
-    assert c['prior'].shape == (3 * 99, X.NE)
+    assert c['prior'].shape == (3 * 99, config.PADRAO.ne)
 
 
 def test_sem_modelo_usa_o_poco_do_pacote():
@@ -144,3 +145,26 @@ def test_sem_modelo_usa_o_poco_do_pacote():
 
     np.testing.assert_array_equal(c['verdadeiro'],
                                   fe.empilha(real['Vp'], real['Vs'], real['Rho']))
+
+
+def test_alvo_por_nome_devolve_modelos_validos():
+    for nome in ref.ALVOS:
+        m = ref.alvo_por_nome(nome, semente=0)
+        if nome == 'poço':
+            assert m is None  # sinaliza para usar o perfil do pacote
+        else:
+            assert np.all(m['Vs'] < m['Vp'])
+            assert m['Vp'].shape == (99, 1)
+
+
+def test_alvo_desconhecido_e_rejeitado():
+    with pytest.raises(ValueError, match='desconhecido'):
+        ref.alvo_por_nome('inexistente', semente=0)
+
+
+def test_alvo_sintetico_independe_da_semente_do_prior():
+    """O alvo usa 1000 + semente, para nao coincidir com o sorteio do a priori."""
+    a = ref.alvo_por_nome('6 camadas', semente=0)
+    b = ref.modelo_em_camadas(n_camadas=6, rng=np.random.default_rng(1000))
+
+    np.testing.assert_array_equal(a['Vp'], b['Vp'])

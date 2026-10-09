@@ -4,14 +4,14 @@
 import numpy as np
 import pytest
 
-import experimento_elastico as X
+import config
 import sensibilidade as sens
 
 
 def test_grade_varia_um_eixo_por_vez():
     """Cada configuracao difere do ponto de referencia em no maximo um fator."""
     configs, _ = sens.grade()
-    referencia = (X.NE, X.SNR, 'poço')
+    referencia = (config.PADRAO.ne, config.PADRAO.snr, 'poço')
 
     for c in configs:
         diferencas = sum(1 for a, b in zip(c, referencia) if a != b)
@@ -22,22 +22,7 @@ def test_grade_nao_repete_a_configuracao_central():
     configs, _ = sens.grade()
 
     assert len(configs) == len(set(configs))
-    assert (X.NE, X.SNR, 'poço') in configs
-
-
-def test_constroi_alvo_devolve_modelos_validos():
-    for nome in sens.ALVOS:
-        m = sens.constroi_alvo(nome, semente=0)
-        if nome == 'poço':
-            assert m is None  # sinaliza para usar o perfil do pacote
-        else:
-            assert np.all(m['Vs'] < m['Vp'])
-            assert m['Vp'].shape == (99, 1)
-
-
-def test_alvo_desconhecido_e_rejeitado():
-    with pytest.raises(ValueError, match='desconhecido'):
-        sens.constroi_alvo('inexistente', semente=0)
+    assert (config.PADRAO.ne, config.PADRAO.snr, 'poço') in configs
 
 
 def test_avalia_devolve_as_metricas_dos_dois_metodos():

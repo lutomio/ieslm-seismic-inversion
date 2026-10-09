@@ -111,24 +111,40 @@ def monta_forward(Time, dt, freq=45, ntw=64, theta=None):
     return g, wavelet
 
 
-def separa_angulos(d):
+def separa_angulos(d, n_angulos=3):
     """
     SEPARA ANGULOS
-    Divide um vetor de dados empilhado nos tres angulos.
+    Divide um vetor de dados empilhado nos seus angulos.
 
     Parameters
     ----------
     d : array_like
-        Dados (3*nd, ...) com os angulos empilhados na ordem Near, Mid, Far.
+        Dados (n_angulos*nd, ...), com os angulos empilhados em ordem
+        crescente de incidencia (Near, Mid, Far no caso padrao).
+    n_angulos : int, optional
+        Numero de angulos empilhados.
 
     Returns
     -------
     list of array_like
-        Tres blocos, um por angulo.
+        Um bloco por angulo.
     """
-    nd = d.shape[0] // 3  # amostras por angulo: d empilha Near, Mid e Far
+    nd = d.shape[0] // n_angulos  # amostras por angulo
 
-    return [d[i * nd:(i + 1) * nd] for i in range(3)]
+    return [d[i * nd:(i + 1) * nd] for i in range(n_angulos)]
+
+
+def nome_angulo(theta, i, n_angulos):
+    """
+    NOME ANGULO
+    Rotulo legivel de um angulo, para legendas e titulos.
+
+    Com os tres angulos usuais devolve 'Near (15°)', 'Mid (30°)' e
+    'Far (45°)'; com outra quantidade, apenas o valor em graus.
+    """
+    if n_angulos == 3:
+        return '%s (%.0f°)' % (NOMES_ANGULOS[i], theta)
+    return '%.0f°' % theta
 
 
 def adiciona_ruido(d_limpo, snr, rng):
