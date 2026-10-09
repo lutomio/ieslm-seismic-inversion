@@ -68,7 +68,9 @@ def taxa_cobertura(conjunto, verdadeiro, inferior=10, superior=90):
     Complementa a largura do envelope: um conjunto pode ser estreito por ter
     convergido bem ou por ter colapsado, e so a cobertura distingue os dois
     casos. Para um envelope P10-P90 bem calibrado, o valor esperado e 0,8;
-    valores muito abaixo indicam excesso de confianca.
+    valores muito abaixo indicam excesso de confianca, e valores acima,
+    envelope largo demais. Por isso "maior" nao e "melhor": para comparar
+    calibracao use erro_calibracao.
 
     Parameters
     ----------
@@ -88,6 +90,30 @@ def taxa_cobertura(conjunto, verdadeiro, inferior=10, superior=90):
     v = np.asarray(verdadeiro).ravel()  # referencia, achatada para comparar
 
     return float(np.mean((v >= p_inf) & (v <= p_sup)))
+
+
+def erro_calibracao(cobertura, inferior=10, superior=90):
+    """
+    ERRO DE CALIBRACAO
+    Distancia entre a cobertura medida e a ideal do envelope.
+
+    Para o envelope P10-P90 a cobertura ideal e 0,8. Uma cobertura de 0,9 e
+    tao mal calibrada (envelope largo demais) quanto uma de 0,7 (estreito
+    demais): as duas tem erro 0,1. Menor e melhor; zero e a calibracao ideal.
+
+    Parameters
+    ----------
+    cobertura : float or array_like
+        Taxa de cobertura, como devolvida por taxa_cobertura.
+    inferior, superior : float, optional
+        Percentis do envelope que gerou a cobertura.
+
+    Returns
+    -------
+    float or ndarray
+    """
+    ideal = (superior - inferior) / 100.0  # fracao esperada dentro do envelope
+    return np.abs(np.asarray(cobertura, dtype=float) - ideal)
 
 
 def teste_ks(conjunto, verdadeiro):

@@ -456,6 +456,89 @@ def mesmo_custo(linhas):
     return pares
 
 
+def com_calibracao(sub):
+    """
+    COM CALIBRACAO
+    Copia das linhas com o erro de calibracao de Vp (|cobertura - 0,8|).
+
+    Nao vai para o CSV: e derivado da cobertura, que ja esta la. Sobre ele a
+    comparacao pareada responde "qual metodo esta mais perto da cobertura
+    ideal", e nao "qual tem cobertura maior" -- as duas perguntas so
+    coincidem enquanto ambos estao abaixo de 0,8.
+    """
+    return [dict(l, cal_Vp_mda=float(mt.erro_calibracao(l['cob_Vp_mda'])),
+                 cal_Vp_lm=float(mt.erro_calibracao(l['cob_Vp_lm']))) for l in sub]
+
+
+def configuracoes(linhas):
+    """
+    CONFIGURACOES
+    As configuracoes distintas dos eixos, cada uma com as suas linhas.
+
+    A referencia aparece em todos os eixos, mas entra uma vez so.
+
+    Returns
+    -------
+    list of (str, list of dict)
+    """
+    vistas = []
+    for eixo in EIXOS:
+        plano = no_eixo(linhas, eixo.campo)
+        for v in _valores(linhas, eixo):
+            if v == REF_CAMPOS[eixo.campo]:
+                rotulo = 'referencia'
+                if any(r == rotulo for r, _ in vistas):
+                    continue
+            else:
+                rotulo = '%s %s' % (eixo.campo, eixo.rotulo(v))
+            vistas.append((rotulo, _com(plano, **{eixo.campo: v})))
+    return vistas
+
+
+BALANCO = (('rmse_Vp', 'RMSE de Vp'), ('cal_Vp', 'calibracao de Vp, |cobertura - 0,8|'))
+
+
+def balanco(linhas, nivel=0.05):
+    """
+    BALANCO
+    Em quantas configuracoes cada metodo vence, com significancia.
+
+    Para cada configuracao distinta (configuracoes) e cada metrica de
+    BALANCO -- as duas sao "menor e melhor" --, classifica a comparacao
+    pareada como 'iES-LM melhor', 'ES-MDA melhor' ou 'empate' (p >= nivel).
+
+    Returns
+    -------
+    dict
+        metrica -> {classe: [rotulos das configuracoes]}
+    """
+    resultado = {}
+    for metrica, _ in BALANCO:
+        classes = {'iES-LM melhor': [], 'ES-MDA melhor': [], 'empate': []}
+        for rotulo, sub in configuracoes(linhas):
+            *_, dif, p = _pareado(com_calibracao(sub), metrica)
+            if p >= nivel:
+                classe = 'empate'
+            else:
+                classe = 'iES-LM melhor' if dif < 0 else 'ES-MDA melhor'
+            classes[classe].append(rotulo)
+        resultado[metrica] = classes
+    return resultado
+
+
+def _resumo_balanco(linhas):
+    n = len(configuracoes(linhas))
+    print('\n=== Balanco: %d configuracoes distintas, comparacao pareada a 5%% ===' % n)
+    for metrica, nome in BALANCO:
+        classes = balanco(linhas)[metrica]
+        print('\n%s' % nome)
+        for classe, rotulos in classes.items():
+            print('  %-14s %2d   %s' % (classe, len(rotulos), ', '.join(rotulos)))
+    print('\n  Sem correcao para comparacoes multiplas: com %d testes a 5%%, cerca de'
+          ' %.1f\n  "significativos" por acaso sao esperados em cada metrica.'
+          % (n, 0.05 * n))
+
+
 # ----------------------------------------------------------------- resumo ---
 
 def _marca(p):
@@ -492,6 +575,11 @@ def _resumo(linhas):
             sub = _com(no_eixo(linhas, eixo.campo), **{eixo.campo: v})
             print(_linha_eixo(eixo.rotulo(v), sub))
     print('\n  * diferenca significativa ao nivel de 5% (Wilcoxon pareado)')
+    print('  Cobertura: o ideal e 0,8. Acima disso o envelope e largo demais, entao'
+          '\n  cobertura maior nao e sempre melhor; o balanco abaixo compara a'
+          '\n  distancia a 0,8.')
+
+    _resumo_balanco(linhas)
 
     pares = mesmo_custo(linhas)
     if pares:
@@ -502,8 +590,8 @@ def _resumo(linhas):
                  '/'.join(str(c) for c in custos)))
         print('%-14s %15s %15s %8s %8s' % ('', 'ES-MDA', 'iES-LM', 'dif.', 'p'))
         for metrica, nome in (('rmse_Vp', 'RMSE Vp'), ('cob_Vp', 'cobertura Vp'),
-                              ('env_Vp', 'envelope Vp')):
-            print(_linha_resumo(nome, pares, metrica))
+                              ('cal_Vp', '|cob. - 0,8|'), ('env_Vp', 'envelope Vp')):
+            print(_linha_resumo(nome, com_calibracao(pares), metrica))
 
     _resumo_cruzada(linhas)
 

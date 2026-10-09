@@ -175,3 +175,11 @@ def test_sequencia_alpha_e_decrescente():
     a = mt.sequencia_alpha_esmda(4)
 
     assert np.all(np.diff(a) < 0)
+
+
+def test_erro_de_calibracao_e_simetrico_em_torno_de_oitenta_por_cento():
+    """Envelope largo demais (0,9) e tao mal calibrado quanto estreito (0,7)."""
+    assert mt.erro_calibracao(0.9) == pytest.approx(0.1)
+    assert mt.erro_calibracao(0.7) == pytest.approx(0.1)
+    assert mt.erro_calibracao(0.8) == pytest.approx(0.0)
+    assert mt.erro_calibracao(0.95, inferior=5, superior=95) == pytest.approx(0.05)

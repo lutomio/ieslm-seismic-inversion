@@ -1,14 +1,15 @@
-# TCC 2 — Implementação do iES-LM para inversão sísmica acústica
+# iES-LM × ES-MDA na inversão sísmica elástica 1D
 
 Código da parte prática do TCC de Lucas Tomio (UFSC — Ciências da Computação).
 Implementa o **iES-LM** (Ma e Bi, 2019) e o compara com o **ES-MDA**
-(Emerick e Reynolds, 2013) na inversão sísmica acústica 1D para estimar o
-perfil de impedância acústica $Z$.
+(Emerick e Reynolds, 2013) na estimativa conjunta da velocidade
+compressional $V_p$, da velocidade cisalhante $V_s$ e da densidade $\rho$ a
+partir de dados sísmicos de três ângulos.
 
 O eixo da comparação é **como cada algoritmo regulariza o passo de atualização
-do conjunto**: o ES-MDA usa fatores de inflação $\alpha_i$ fixos, definidos a
-priori; o iES-LM ajusta $\alpha^i$ a cada iteração por uma regra de região de
-confiança.
+do conjunto**: o ES-MDA usa fatores de inflação $\alpha_l$ fixados antes de
+rodar; o iES-LM ajusta $\alpha^i$ a cada iteração por uma regra de região de
+confiança baseada na razão de ganho.
 
 ## Instalação
 
@@ -36,50 +37,154 @@ export SEREMPY_PATH=/caminho/para/SeReMpy
 
 ## Como rodar
 
-Suíte de testes completa:
-
 ```bash
-python -m pytest tests/ -v
+python experimento_elastico.py          # uma comparação: tabela de métricas + figuras
+python sensibilidade.py --rapido        # estudo de sensibilidade reduzido (~15 s)
+python sensibilidade.py                 # estudo completo, 1.000 execuções (~5 min)
+python sensibilidade.py --relatorio     # refaz tabelas e figuras a partir do CSV
+python -m pytest tests/ -v              # 191 testes
 ```
 
-Experimento comparativo (imprime as métricas e gera as figuras em `figuras/`):
+As figuras vão para `figuras/`, cada uma em PNG e em PDF vetorial (os PDFs
+não são versionados; os comandos acima os regeneram). As execuções do estudo,
+uma por linha, vão para `resultados/sensibilidade.csv`.
 
-```bash
-python experimento.py
+## Como mudar as entradas
+
+Todas as entradas do experimento elástico — tamanho do conjunto, nível de
+ruído, wavelet, ângulos, *a priori*, número de assimilações do ES-MDA,
+parâmetros do iES-LM, modelo de referência — ficam em `config.py`. Para mudar
+uma delas, sem editar nenhum outro arquivo:
+
+```python
+from dataclasses import replace
+import config, experimento_elastico
+
+cfg = replace(config.PADRAO, snr=20.0, ne=100, alvo='6 camadas')
+experimento_elastico.executa(cfg)
 ```
+
+Valores inválidos são rejeitados com uma mensagem que lista todos os
+problemas. Cada execução grava a configuração usada em
+`resultados/experimento_elastico_config.json`.
+
+## Montagem do experimento
+
+- **Modelo direto:** AVO linearizado (Aki-Richards) convolvido com uma
+  wavelet de Ricker de 45 Hz, em 15°, 30° e 45°, pelo `SeismicModel` da
+  SeReMpy.
+- **O dado observado é gerado, com ruído.** Os traços que acompanham a
+  SeReMpy foram produzidos por este mesmo operador a partir do poço, sem
+  ruído. Invertê-los seria *inverse crime*; por isso o experimento gera o
+  dado a partir do modelo de referência e soma ruído gaussiano com SNR
+  controlada (padrão 10). A $C_D$ corresponde a esse ruído.
+- **Modelo de referência:** o perfil de poço da SeReMpy, ou um modelo
+  sintético de `referencia.py` (em camadas ou suavizado).
+- **A priori:** tendência suave da referência mais perturbações gaussianas
+  correlacionadas. A tendência e a covariância vêm da própria referência, como
+  é usual em estudo sintético. Isso torna o *a priori* **otimista**; o eixo
+  `vies_prior` mede o que acontece quando a tendência está errada.
+- **ES-MDA:** a `EnsembleSmootherMDA` da SeReMpy, sem modificação, com
+  sequência decrescente de fatores satisfazendo $\sum 1/\alpha_l = 1$.
+- **iES-LM:** $\gamma^0 = 1$, parada pelo princípio da discrepância com
+  constante 4 (Eq. 43), limites físicos por truncamento.
+- **Comparação pareada:** em cada repetição os dois métodos recebem o mesmo
+  *a priori*, o mesmo ruído e a mesma semente. As diferenças são testadas com
+  o teste de postos sinalizados de Wilcoxon.
 
 ## Organização
 
 | Arquivo | Conteúdo |
 |---|---|
-| `dados.py` | Localiza a SeReMpy e carrega `data5seis.dat` / `data5log.dat`. |
-| `forward.py` | Modelo direto acústico: $d = W\,[\tfrac12 D \ln Z]$. |
-| `prior.py` | Conjunto a priori de impedância (tendência suave + correlação vertical). |
-| `ieslm.py` | **Núcleo do iES-LM** (Algoritmo 2 de Ma e Bi, 2019). |
-| `experimento.py` | Driver comparativo iES-LM × ES-MDA e figuras. |
-| `tests/` | Suíte de testes (ver abaixo). |
-| `PLANO.md` | Plano de desenvolvimento aprovado antes da implementação, com as divergências registradas. |
+| `ieslm.py` | **O algoritmo** — Algoritmo 2 de Ma e Bi (2019) |
+| `config.py` | Todas as entradas do experimento num só lugar (`Configuracao`) |
+| `experimento_elastico.py` | Experimento principal: inversão elástica, métricas e figuras |
+| `sensibilidade.py` | Estudo de sensibilidade: 8 eixos, 2 grades cruzadas, 1.000 execuções pareadas |
+| `forward_elastico.py` | Modelo direto AVO de três ângulos |
+| `prior.py` | Conjunto *a priori* (tendência suave + perturbações correlacionadas) |
+| `referencia.py` | Modelos de referência sintéticos (em camadas, suavizado) |
+| `metricas.py` | RMSE, envelope P10–P90, cobertura, erro de calibração, teste KS, sequência de $\alpha_l$ |
+| `dados.py` | Leitura dos dados e localização da SeReMpy |
+| `experimento.py`, `forward.py` | Caso anterior, de impedância acústica, mantido como caso de teste mais simples |
+| `tests/` | 191 testes |
+| `data/` | Dois arquivos de dados redistribuídos da SeReMpy (MIT) |
 
-A biblioteca `SeReMpy/` e o `ESPetroInversionDriver.py` **não são modificados**.
-O modelo direto reaproveita `DifferentialMatrix` e `WaveletMatrix` da
-biblioteca, e o ES-MDA da comparação usa a `EnsembleSmootherMDA` original.
+O `ieslm.py` **não conhece sísmica**: recebe o modelo direto como uma função
+`g`, de modo que o mesmo núcleo roda o exemplo sintético do artigo e o
+problema sísmico. É isso que permite validar a implementação contra um
+resultado publicado.
 
-## Testes
+## Do artigo ao código
 
-| Arquivo | O que cobre |
-|---|---|
-| `test_dados.py` | Carregamento dos dados e dimensões. |
-| `test_forward.py` | Modelo direto: formatos, refletividade conferida à mão, reprodução do dado real (correlação > 0,99), não-linearidade. |
-| `test_regras_lm.py` | Regras do algoritmo isoladas: Eqs. 30–31, 34, 39, 40, 42 e a perturbação $\xi\sim\mathcal N(0,\alpha C_D)$. |
-| `test_mabi_exemplo1.py` | **Validação contra o artigo** — Exemplo 1 da Seção 5.1. |
-| `test_integracao.py` | iES-LM rodando no dado sísmico real; critérios de parada. |
-| `test_experimento.py` | Regressão do resultado que vai para o TCC. |
+| Símbolo | Eq. | Onde |
+|---|---|---|
+| $C_{MD}$, $C_{DD}$ | 30, 31 | `covariancias()` |
+| atualização do modelo | 32 | `M + C_MD @ V` em `ieslm()` |
+| objetivo por membro | 34 | `objetivo_por_membro()` (dado perturbado) |
+| razão de ganho $\rho_j$ | 37, 38 | `reducao_real / reducao_prevista` |
+| desajuste médio $\bar O$ | 39 | `desajuste_medio()` (dado sem perturbação) |
+| atualização de $\gamma$ e $\alpha$ | 40, 41 | `fator_lm()` + regra da mediana |
+| parada por discrepância | 42, 43 | `desajuste_absoluto()`, `fator_ruido` |
 
-O teste-âncora é `test_mabi_exemplo1.py`: reproduz o benchmark publicado
-(modelo linear de um parâmetro, MLE analítico $= 4{,}76543$) para $N_e =
-10, 100, 500$. Se ele falhar, o núcleo está errado.
+## Validação
 
-## Duas observações sobre a leitura do artigo
+O teste-âncora, `test_mabi_exemplo1.py`, reproduz o exemplo linear da Seção
+5.1 do artigo, cuja solução de máxima verossimilhança é conhecida
+analiticamente ($4{,}76543$):
+
+| $N_e$ | Esta implementação | Artigo (Fig. 1) |
+|---|---|---|
+| 10 | 4,76640 | 4,76552 |
+| 100 | 4,76599 | 4,76528 |
+| 500 | 4,76385 | 4,76540 |
+
+O modelo direto elástico reproduz os traços que acompanham a SeReMpy com erro
+abaixo de $10^{-6}$, e cada equação é testada isoladamente contra valores
+calculáveis à mão.
+
+## Resultados
+
+Vinte sementes por configuração, pareadas. "Significativo" quer dizer
+p < 0,05.
+
+**No mesmo custo** (3 avaliações do modelo direto para cada um: iES-LM contra
+ES-MDA com duas assimilações; 20 de 20 sementes pareadas):
+
+| Métrica ($V_p$) | ES-MDA | iES-LM | p |
+|---|---|---|---|
+| RMSE | 0,1505 | 0,1507 | 0,70 |
+| Cobertura do envelope P10–P90 (ideal 0,8) | 0,581 | 0,658 | < 0,001 |
+
+No mesmo custo, os dois métodos estimam igualmente bem, e o iES-LM representa
+a incerteza de forma mais calibrada.
+
+**Nas 29 configurações distintas do estudo:**
+
+| | iES-LM melhor | empate | ES-MDA melhor |
+|---|---|---|---|
+| RMSE de $V_p$ | 1 | 21 | 7 |
+| Calibração, $\lvert\text{cobertura} - 0{,}8\rvert$ | 18 | 8 | 3 |
+
+- O iES-LM **não** é um estimador pontual melhor. Perde em RMSE com pouco
+  ruído (SNR 20 e 50), com ângulo máximo de 60° e com $N_e = 400$, e vence só
+  no alvo suavizado.
+- A vantagem dele é a **calibração**, e ela depende da sua própria
+  sintonia. As três configurações em que o ES-MDA é mais calibrado são todas
+  parâmetros do iES-LM fora do padrão: constante da Eq. 43 em 0,5 ou 1, e
+  $\gamma^0 = 0{,}25$ (o valor que o artigo usa no seu Exemplo 2).
+- Nos alvos sintéticos os dois métodos produzem envelopes largos demais
+  (cobertura acima de 0,8), e nenhum é mais calibrado que o outro.
+- Uma tendência *a priori* com viés derruba os dois igualmente (−8%: RMSE
+  ≈ 0,35 e cobertura ≈ 0,1). A sísmica limitada em banda não corrige erro de
+  baixa frequência.
+- Com 29 testes por métrica e sem correção para comparações múltiplas,
+  espera-se cerca de 1,5 resultado "significativo" por acaso em cada métrica.
+  Resultados isolados no limite (p entre 0,01 e 0,05) devem ser lidos com
+  isso em mente.
+
+São experimentos sintéticos, com *a priori* otimista.
+
+## Observações sobre o artigo
 
 **1. A Eq. 38 impressa omite o fator 1/2.** A Eq. 34 define o objetivo com
 $\tfrac12$, e o artigo afirma que $L^i_j(m^i_j) = O^i_j(m^i_j)$. Derivando $L$
@@ -87,41 +192,56 @@ a partir da Eq. 36, com $\bar G\,C_{MD} = C_{DD}$, chega-se a
 
 $$L^i_j(m^{i+1}_j) = \frac{(\alpha^i)^2}{2}\, v^\top C_D\, v, \qquad v = (C_{DD} + \alpha^i C_D)^{-1} r .$$
 
-O fator $\tfrac12$ é necessário para a consistência entre $L$ e $O$. A
-verificação é o teste `test_rho_vale_um_no_caso_linear`: com modelo linear a
-linearização é exata, então $\rho_j$ tem de valer exatamente 1. Medido:
-$\rho = 1{,}000000$ com o fator, $\rho = 1{,}103$ sem ele.
+A verificação é independente: com modelo linear a linearização é exata, então
+$\rho_j$ tem de valer 1. Medido: $1{,}00000000$ com o fator, $1{,}103$ sem ele.
 
-**2. A parada da Eq. 43 é o que evita o sobreajuste.** O iES-LM resolve um
-problema de máxima verossimilhança (Eq. 10, sem termo de prior). Rodando só
-com os critérios da Seção 4.3, ele reduz o desajuste até ajustar o próprio
-ruído: no experimento, o desajuste caiu a $5{,}2\times10^{-9}$, o conjunto
-colapsou (envelope P10–P90 de 0,047) e o RMSE contra o poço **piorou** para
-0,724 — pior que o ES-MDA. Com o critério da Eq. 43 ($R^i < 4p$, Seção 4.5),
-o resultado se inverte. É o parâmetro `fator_ruido` de `ieslm.ieslm`.
+**2. A parada da Eq. 43 é o que evita o sobreajuste.** O iES-LM minimiza um
+objetivo de máxima verossimilhança, sem termo de *a priori*. No experimento
+padrão, com a Eq. 43 desligada, ele passa a ajustar o ruído a partir da
+terceira iteração, e o conjunto que devolve (o de menor desajuste) tem RMSE de
+$V_p$ 0,914, contra 0,148 com a parada. Apertar a constante não ajuda: com
+0,5, o RMSE médio em 20 sementes é 0,74.
 
-## Resultado do experimento
+**3. O `min` da Eq. 41 impede $\alpha$ de crescer.** Na mesma execução sem a
+Eq. 43, um passo dá $\rho \approx -2158$ em todos os membros, e a Eq. 40 pede
+para multiplicar $\gamma$ por cerca de $10^{10}$, mas $\alpha$ não se move. Esse
+passo é causado pelos limites físicos: o conjunto colapsado dá um passo 26
+vezes maior que o próprio espalhamento, 15% dos valores são truncados, e o
+truncamento quebra a linearização. Sem limites, o passo não diverge, e resta
+só o sobreajuste.
 
-Conjunto de 200 membros, 99 amostras de poço, 98 amostras sísmicas, semente fixa:
+**4. No cenário padrão, $\rho_j \approx 1$.** Com a parada, $\rho_j$ fica entre
+0,99 e 1,01, então a regra adaptativa opera no piso de 1/3 e o mecanismo de
+região de confiança quase não é exercitado. Ele sai do piso em cenários mais
+difíceis, por exemplo com um só ângulo ($\rho \approx 0{,}86$).
 
-| | ES-MDA | iES-LM |
-|---|---|---|
-| RMSE vs. poço | 0,478 | **0,476** |
-| desajuste final $\bar O$ | 1,06e-01 | **7,70e-02** |
-| largura P10–P90 | 0,539 | 0,567 |
-| avaliações do modelo direto | 5 | **3** |
-| iterações | 4 | 2 |
+## Correções de afirmações anteriores
 
-(RMSE do conjunto a priori: 0,713.)
+A mensagem do commit `101c8c9` contém duas afirmações que experimentos
+posteriores refutaram:
 
-A regularização adaptativa alcançou qualidade equivalente à do ES-MDA
-**com menos avaliações do modelo direto**: $\alpha$ cai de 18,4 para
-8,6e-03 em duas iterações, enquanto o ES-MDA mantém $\alpha_i = 4$ fixo nas
-quatro assimilações.
+- *"a 62% das avaliações do modelo direto [...] mais barato"*: comparava o
+  iES-LM com o ES-MDA de quatro assimilações, uma escolha arbitrária. No
+  mesmo custo, o RMSE é igual (tabela acima).
+- *"com pouco ruído o iES-LM para cedo demais"*: apertar a constante da
+  Eq. 43 sempre piorou. A desvantagem com pouco ruído segue em aberto; uma
+  hipótese é a combinação de um objetivo sem termo de *a priori* com um
+  $\alpha$ que não pode crescer.
 
-> Resultado de uma única configuração e semente. Para o texto do TCC, convém
-> repetir com várias sementes e tamanhos de conjunto antes de afirmar
-> superioridade.
+Versões anteriores desta análise também contavam cobertura maior como
+calibração melhor. Isso só vale abaixo de 0,8: nos alvos sintéticos, em que os
+dois métodos passam de 0,8, a vantagem aparente do iES-LM vira empate. A
+calibração agora é medida pela distância a 0,8.
+
+## Escopo
+
+Implementa o Algoritmo 2 (Seção 4) do artigo. As variantes para covariância
+diagonal desconhecida (Seção 6, aES-LM) e para regressão robusta (Seção 7,
+rES-LM) não foram implementadas.
+
+## Licença
+
+MIT, ver `LICENSE`. Avisos de terceiros em `THIRD_PARTY.md`.
 
 ## Referências
 
@@ -131,4 +251,4 @@ quatro assimilações.
 - Emerick, A. e Reynolds, A. (2013). *Ensemble smoother with multiple data
   assimilation*. Computers & Geosciences 55:3–15.
 - Grana, D., Mukerji, T. e Doyen, P. (2021). *Seismic Reservoir Modeling*.
-  Wiley. — biblioteca SeReMpy e modelo convolucional.
+  Wiley. — biblioteca SeReMpy e modelo direto.

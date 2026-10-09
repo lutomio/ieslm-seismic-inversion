@@ -228,3 +228,41 @@ def test_csv_ida_e_volta_preserva_valores_e_tipos(tmp_path, monkeypatch):
 
     lidas = sens.carrega_csv(str(tmp_path / 'sensibilidade.csv'))
     assert lidas == linhas
+
+
+# ---------------------------------------------------------------- balanco ---
+
+def _linha_cob(cob_mda, cob_lm, semente, **campos):
+    return _linha(semente=semente, cob_Vp_mda=cob_mda, cob_Vp_lm=cob_lm,
+                  rmse_Vp_mda=1.0, rmse_Vp_lm=1.0, **campos)
+
+
+def test_calibracao_julga_pela_distancia_a_oitenta_por_cento():
+    """Cobertura maior acima de 0,8 e pior, nao melhor."""
+    sub = sens.com_calibracao([_linha_cob(0.85, 0.95, s) for s in range(12)])
+    *_, dif_cob, _ = sens._pareado(sub, 'cob_Vp')
+    *_, dif_cal, p = sens._pareado(sub, 'cal_Vp')
+
+    assert dif_cob > 0           # o iES-LM tem cobertura maior...
+    assert dif_cal > 0 and p < 0.05   # ...e por isso esta MAIS longe do ideal
+
+
+def test_configuracoes_conta_a_referencia_uma_vez():
+    linhas = [_linha(semente=0), _linha(ne=50, semente=0), _linha(snr=5.0, semente=0)]
+    rotulos = [r for r, _ in sens.configuracoes(linhas)]
+
+    assert rotulos.count('referencia') == 1
+    assert len(rotulos) == 3
+
+
+def test_balanco_classifica_cada_configuracao():
+    linhas = []
+    for s in range(12):
+        linhas.append(_linha_cob(0.60, 0.70, s))                # LM mais perto de 0,8
+        linhas.append(_linha_cob(0.70, 0.60, s, ne=50))         # MDA mais perto
+        linhas.append(_linha_cob(0.75, 0.75, s, snr=5.0))       # empate
+    classes = sens.balanco(linhas)['cal_Vp']
+
+    assert classes['iES-LM melhor'] == ['referencia']
+    assert classes['ES-MDA melhor'] == ['ne 50']
+    assert classes['empate'] == ['snr 5']
