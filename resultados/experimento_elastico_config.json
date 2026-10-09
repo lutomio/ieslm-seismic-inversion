@@ -13,6 +13,7 @@
     "comprimento_correlacao": 5.0,
     "ordem_tendencia": 3,
     "corte_tendencia": 0.04,
+    "vies_prior": 0.0,
     "folga_inferior": 0.7,
     "folga_superior": 1.3,
     "n_assimilacoes": 4,

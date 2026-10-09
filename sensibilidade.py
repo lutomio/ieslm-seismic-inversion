@@ -597,8 +597,7 @@ def _figuras(linhas):
     eixos[1, 0].legend(fontsize=8)
     fig.suptitle('Sensibilidade: média e desvio entre %d sementes' % n_sem, y=0.995)
     fig.tight_layout()
-    fig.savefig(os.path.join(PASTA_FIGURAS, 'sensibilidade_eixos.png'), dpi=150)
-    plt.close(fig)
+    X.salva_figura(fig, 'sensibilidade_eixos', PASTA_FIGURAS)
 
     # Figura 2: diferenca pareada, que e o que sustenta (ou nao) a comparacao
     fig, eixos = plt.subplots(1, 3, figsize=(13, 4.6))
@@ -622,8 +621,7 @@ def _figuras(linhas):
     fig.suptitle('Diferença pareada: abaixo de zero, o iES-LM é melhor naquela semente',
                  y=0.98)
     fig.tight_layout()
-    fig.savefig(os.path.join(PASTA_FIGURAS, 'sensibilidade_pareada.png'), dpi=150)
-    plt.close(fig)
+    X.salva_figura(fig, 'sensibilidade_pareada', PASTA_FIGURAS)
 
     # Figura 3: custo contra qualidade, ao longo de N_e
     fig, ax = plt.subplots(figsize=(6.5, 5))
@@ -639,8 +637,7 @@ def _figuras(linhas):
     ax.grid(alpha=0.3)
     ax.legend(fontsize=8)
     fig.tight_layout()
-    fig.savefig(os.path.join(PASTA_FIGURAS, 'sensibilidade_custo.png'), dpi=150)
-    plt.close(fig)
+    X.salva_figura(fig, 'sensibilidade_custo', PASTA_FIGURAS)
 
     _figura_assimilacoes(linhas)
     _figura_novos_eixos(linhas)
@@ -689,8 +686,7 @@ def _figura_assimilacoes(linhas):
     fig.suptitle('Comparação no mesmo custo: média e desvio entre %d sementes'
                  % len({l['semente'] for l in base}), y=0.99)
     fig.tight_layout()
-    fig.savefig(os.path.join(PASTA_FIGURAS, 'sensibilidade_assimilacoes.png'), dpi=150)
-    plt.close(fig)
+    X.salva_figura(fig, 'sensibilidade_assimilacoes', PASTA_FIGURAS)
 
 
 def _figura_novos_eixos(linhas):
@@ -718,8 +714,7 @@ def _figura_novos_eixos(linhas):
                  '(tracejado vertical = valor de referência)'
                  % len({l['semente'] for l in linhas}), y=0.995)
     fig.tight_layout()
-    fig.savefig(os.path.join(PASTA_FIGURAS, 'sensibilidade_novos_eixos.png'), dpi=150)
-    plt.close(fig)
+    X.salva_figura(fig, 'sensibilidade_novos_eixos', PASTA_FIGURAS)
 
 
 def _figura_cruzada(linhas):
@@ -758,9 +753,7 @@ def _figura_cruzada(linhas):
         fig.suptitle('Grade cruzada %s × %s: diferença pareada média; '
                      '* = significativa a 5%%' % (el.titulo, ec.titulo), y=1.0)
         fig.tight_layout()
-        fig.savefig(os.path.join(PASTA_FIGURAS, 'sensibilidade_cruzada_%s.png' % cz.nome),
-                    dpi=150)
-        plt.close(fig)
+        X.salva_figura(fig, 'sensibilidade_cruzada_%s' % cz.nome, PASTA_FIGURAS)
 
 
 if __name__ == '__main__':
