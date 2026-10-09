@@ -10,3 +10,9 @@ PLANO.md
 PROPOSTAS.md
 GUIA_DO_CODIGO.md
 MUDANCAS.md
+
+# Artigos e documentos de referencia: direitos autorais de terceiros.
+# Nunca devem ir para o repositorio publico.
+*.pdf
+*.tex
+*.bib
