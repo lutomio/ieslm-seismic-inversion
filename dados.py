@@ -4,8 +4,7 @@
 Acesso aos dados e a biblioteca SeReMpy.
 
 Concentra num so lugar (a) a insercao da SeReMpy no sys.path e (b) a leitura
-dos arquivos de poco e de sismica, para que os demais modulos do TCC nao
-precisem lidar com caminhos relativos.
+dos arquivos de poco e de sismica.
 
 Dados: Grana, Mukerji e Doyen (2021), SeReMpy - Data/data5log.dat e
 Data/data5seis.dat (mesmos dados usados pelo ESPetroInversionDriver.py).
