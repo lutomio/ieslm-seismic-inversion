@@ -5,9 +5,9 @@ Levenberg-Marquardt** (iES-LM, called ES-LM in the original paper), applied to
 the joint estimation of P-wave velocity, S-wave velocity and density from
 three-angle seismic data, and compared against **ES-MDA**.
 
-> Ma, X. and Bi, L. (2019). *A robust iterative ensemble smoother method for
-> efficient history matching and uncertainty quantification.*
-> Computational Geosciences 23:415–442.
+> Ma, X. and Bi, L. (2019). *A robust adaptive iterative ensemble smoother
+> scheme for practical history matching applications.*
+> Computational Geosciences 23:415–442. doi:10.1007/s10596-018-9786-9
 
 The two methods differ in how they regularize the ensemble update step. ES-MDA
 uses a **fixed** sequence of inflation factors chosen in advance; iES-LM adapts

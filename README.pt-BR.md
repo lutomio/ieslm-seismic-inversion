@@ -245,8 +245,8 @@ MIT, ver `LICENSE`. Avisos de terceiros em `THIRD_PARTY.md`.
 
 ## Referências
 
-- Ma, X. e Bi, L. (2019). *A robust iterative ensemble smoother method for
-  efficient history matching and uncertainty quantification*.
+- Ma, X. e Bi, L. (2019). *A robust adaptive iterative ensemble smoother
+  scheme for practical history matching applications*.
   Computational Geosciences 23:415–442. — **artigo central**
 - Emerick, A. e Reynolds, A. (2013). *Ensemble smoother with multiple data
   assimilation*. Computers & Geosciences 55:3–15.

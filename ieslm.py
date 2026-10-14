@@ -3,8 +3,8 @@
 """
 iES-LM - Iterative Ensemble Smoother com Levenberg-Marquardt.
 
-Implementacao do Algoritmo 2 de Ma e Bi (2019), "A robust iterative ensemble
-smoother method for efficient history matching and uncertainty quantification",
+Implementacao do Algoritmo 2 de Ma e Bi (2019), "A robust adaptive iterative
+ensemble smoother scheme for practical history matching applications",
 Computational Geosciences 23:415-442.
 
 O modulo e agnostico ao dominio: o modelo direto entra como uma funcao
