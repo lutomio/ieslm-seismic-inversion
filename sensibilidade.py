@@ -26,7 +26,8 @@ reaproveitadas para que nao existam duas implementacoes do mesmo experimento.
 
 Uso:
     python sensibilidade.py             # grade completa
-    python sensibilidade.py --rapido    # grade reduzida, para conferir
+    python sensibilidade.py --rapido    # grade reduzida, para conferir (grava
+                                        # sensibilidade_rapido.csv, sem figuras)
     python sensibilidade.py --relatorio # refaz resumo e figuras a partir do
                                         # CSV, sem rodar as inversoes de novo
 """
@@ -304,8 +305,12 @@ def executa(rapido=False):
         print('  [%2d/%2d] %-38s (%.0f s)'
               % (k, len(configs), _descricao(cfg), time.time() - t0))
 
-    salva(linhas)
-    config.salva(REF, os.path.join(PASTA_RESULTADOS, 'sensibilidade_config.json'),
+    # A grade reduzida grava em arquivos proprios e nao gera figuras: ela
+    # serve para conferir que o codigo roda, e nao pode sobrescrever o CSV
+    # e as figuras do estudo completo.
+    nome = 'sensibilidade_rapido' if rapido else 'sensibilidade'
+    salva(linhas, nome)
+    config.salva(REF, os.path.join(PASTA_RESULTADOS, nome + '_config.json'),
                  eixos={e.campo: list(e.rapido if rapido else e.valores) for e in EIXOS},
                  grades_cruzadas={
                      cz.nome: {cz.linha: list(cz.rapido_linha if rapido else cz.valores_linha),
@@ -313,15 +318,19 @@ def executa(rapido=False):
                      for cz in CRUZADAS},
                  sementes=n_sem)
     _resumo(linhas)
-    _figuras(linhas)
+    if rapido:
+        print('\nGrade reduzida: figuras nao geradas (as do estudo completo foram '
+              'preservadas).')
+    else:
+        _figuras(linhas)
 
     return linhas
 
 
-def salva(linhas):
+def salva(linhas, nome='sensibilidade'):
     """Grava as execucoes em CSV, para que as tabelas do texto sejam rastreaveis."""
     os.makedirs(PASTA_RESULTADOS, exist_ok=True)
-    caminho = os.path.join(PASTA_RESULTADOS, 'sensibilidade.csv')
+    caminho = os.path.join(PASTA_RESULTADOS, nome + '.csv')
     colunas = list(linhas[0])
     with open(caminho, 'w', encoding='utf-8') as f:
         f.write(','.join(colunas) + '\n')

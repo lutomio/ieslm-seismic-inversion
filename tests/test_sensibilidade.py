@@ -266,3 +266,17 @@ def test_balanco_classifica_cada_configuracao():
     assert classes['iES-LM melhor'] == ['referencia']
     assert classes['ES-MDA melhor'] == ['ne 50']
     assert classes['empate'] == ['snr 5']
+
+
+def test_grade_rapida_nao_sobrescreve_o_estudo_completo(tmp_path, monkeypatch):
+    """--rapido grava em arquivos proprios e nao regrava as figuras."""
+    monkeypatch.setattr(sens, 'PASTA_RESULTADOS', str(tmp_path))
+    monkeypatch.setattr(sens, 'PASTA_FIGURAS', str(tmp_path))
+    monkeypatch.setattr(sens, 'grade', lambda rapido=False: ([cfg()], 2))
+    sens.executa(rapido=True)
+
+    nomes = {p.name for p in tmp_path.iterdir()}
+    assert 'sensibilidade_rapido.csv' in nomes
+    assert 'sensibilidade_rapido_config.json' in nomes
+    assert 'sensibilidade.csv' not in nomes
+    assert not any(n.endswith('.png') for n in nomes)

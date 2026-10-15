@@ -46,10 +46,10 @@ export SEREMPY_PATH=/path/to/SeReMpy
 
 ```bash
 python experimento_elastico.py          # one comparison: metrics table + figures
-python sensibilidade.py --rapido        # reduced sensitivity study (~15 s)
+python sensibilidade.py --rapido        # reduced study, to check the code runs (~15 s)
 python sensibilidade.py                 # full study, 1,000 runs (~5 min)
 python sensibilidade.py --relatorio     # rebuild tables and figures from the CSV
-python -m pytest tests/ -v              # 191 tests
+python -m pytest tests/ -v              # 195 tests
 ```
 
 Figures go to `figuras/`, each as PNG and as vector PDF (the PDFs are not
@@ -110,7 +110,7 @@ writes the configuration it used to `resultados/experimento_elastico_config.json
 | `metricas.py` | RMSE, P10–P90 envelope, coverage, calibration error, KS test, α_l sequence |
 | `dados.py` | Data loading and SeReMpy lookup |
 | `experimento.py`, `forward.py` | Earlier acoustic-impedance case, kept as a simpler test bed |
-| `tests/` | 191 tests |
+| `tests/` | 195 tests |
 | `data/` | Two data files redistributed from SeReMpy (MIT) |
 
 Source and identifiers are in Portuguese, since this is a thesis project. The

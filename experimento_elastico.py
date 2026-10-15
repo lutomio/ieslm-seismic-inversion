@@ -23,6 +23,7 @@ from dataclasses import replace
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 import numpy as np
 
 import config
@@ -55,6 +56,11 @@ LARGURA_ZOOM = 0.012
 # Formatos em que cada figura e gravada: PNG para consulta rapida, PDF
 # (vetorial) para o texto em LaTeX, que nao perde nitidez ao ampliar.
 FORMATOS = ('png', 'pdf')
+
+# Numero de sementes (execucoes independentes) na figura de residuos: uma
+# linha por semente, como na comparacao de residuos de Caetano et al. A
+# primeira e a da propria execucao; as demais sao sementes seguintes.
+N_SEMENTES_RESIDUO = 3
 
 
 def carrega_cenario(cfg=None, modelo=None):
@@ -214,6 +220,48 @@ def janela_divergencia(Time, A, B, verdadeiro, largura=LARGURA_ZOOM):
     return float(t[k]), float(t[k + n - 1])
 
 
+def residuo_sem_ruido(c, M):
+    """
+    RESIDUO SEM RUIDO
+    Sismica do modelo verdadeiro, sem ruido, menos a sismica media prevista
+    pelo conjunto M.
+
+    O residuo contra o dado observado (d_obs - previsto) e dominado pelo
+    ruido branco somado ao dado: quando o metodo ajusta ate o nivel do ruido,
+    o que sobra e esse ruido, sem estrutura. Tirando o ruido, sobra so o
+    erro sistematico do metodo, a parte do sinal que ele nao explicou.
+
+    Returns
+    -------
+    array_like
+        Residuo (nd, 1), com os angulos empilhados.
+    """
+    limpo = c['g'](c['verdadeiro'])
+    previsto = c['g'](M).mean(axis=1, keepdims=True)
+    return limpo - previsto
+
+
+def execucoes_extras(cfg, modelo=None, n=N_SEMENTES_RESIDUO):
+    """
+    EXECUCOES EXTRAS
+    Roda os dois metodos nas n - 1 sementes seguintes a cfg.semente, para a
+    figura de residuos por semente.
+
+    Com um alvo sintetico, cada semente sorteia tambem um modelo verdadeiro
+    diferente; com o poco, o modelo e o mesmo e mudam o ruido e o a priori.
+
+    Returns
+    -------
+    list of tuple
+        (cenario, conjunto ES-MDA, conjunto iES-LM), uma tupla por semente.
+    """
+    extras = []
+    for semente in range(cfg.semente + 1, cfg.semente + n):
+        c = carrega_cenario(replace(cfg, semente=semente), modelo)
+        extras.append((c, roda_esmda(c)[0], roda_ieslm(c).conjunto))
+    return extras
+
+
 def salva_figura(fig, nome, pasta=None):
     """
     SALVA FIGURA
@@ -260,10 +308,11 @@ def executa(cfg=None, modelo=None):
     res_sem = roda_ieslm_sem_parada(c)
 
     _tabela(c, Z_mda, hist_mda, aval_mda, res_lm, Z_lm, alphas, res_sem)
-    _figuras(c, Z_mda, hist_mda, res_lm, Z_lm, res_sem)
+    extras = execucoes_extras(cfg, modelo)
+    _figuras(c, Z_mda, hist_mda, res_lm, Z_lm, res_sem, extras)
 
     return dict(c=c, Z_mda=Z_mda, Z_lm=Z_lm, hist_mda=hist_mda, res_lm=res_lm,
-                aval_mda=aval_mda, res_sem_parada=res_sem)
+                aval_mda=aval_mda, res_sem_parada=res_sem, extras=extras)
 
 
 def _tabela(c, Z_mda, hist_mda, aval_mda, res_lm, Z_lm, alphas, res_sem=None):
@@ -413,7 +462,7 @@ def _iteracao_divergente(res):
     return None
 
 
-def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm, res_sem=None):
+def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm, res_sem=None, extras=()):
     cfg = c['cfg']
     os.makedirs(PASTA_FIGURAS, exist_ok=True)
     Time = c['Time']
@@ -548,26 +597,37 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm, res_sem=None):
     fig.tight_layout()
     salva_figura(fig, 'elastico_ganho')
 
-    # Figura 5: residuos sismicos por angulo
+    # Figura 5: residuo sem ruido, por angulo (colunas) e semente (linhas)
     n_ang = len(cfg.angulos)
-    fig, eixos = plt.subplots(1, n_ang, figsize=(4.4 * n_ang, 4.6), sharey=True,
-                              squeeze=False)
-    eixos = eixos[0]
-    obs = fe.separa_angulos(c['d_obs'], n_ang)
-    for i, ax in enumerate(eixos):
-        nome = fe.nome_angulo(cfg.angulos[i], i, n_ang)
-        for M, cor, rot in [(Z_mda, COR_MDA, 'ES-MDA'), (Z_lm, COR_LM, 'iES-LM')]:
-            pred = fe.separa_angulos(c['g'](M), n_ang)[i].mean(axis=1)
-            ax.plot(obs[i].ravel() - pred, np.arange(len(pred)), color=cor, lw=1.2,
-                    label=rot)
-        ax.axvline(0, color='k', lw=0.8, ls='--')
-        ax.set_title('Resíduo sísmico — %s' % nome)
-        ax.set_xlabel('Observado − previsto')
-        ax.grid(alpha=0.3)
-    eixos[0].set_ylabel('Amostra sísmica')
-    eixos[0].invert_yaxis()
-    eixos[0].legend(fontsize=8)
-    fig.tight_layout()
+    execucoes = [(c, Z_mda, Z_lm)] + list(extras)
+    fig, eixos = plt.subplots(len(execucoes), n_ang, figsize=(4.4 * n_ang, 3.3 * len(execucoes) + 0.9),
+                              sharey=True, sharex='col', squeeze=False)
+    for r, (c_r, mda_r, lm_r) in enumerate(execucoes):
+        t_sis = 0.5 * (c_r['Time'][:-1] + c_r['Time'][1:]).ravel()  # tempo das amostras sismicas
+        sigma = float(np.sqrt(c_r['C_D'][0, 0]))  # desvio do ruido somado ao dado
+        res = {nome: fe.separa_angulos(residuo_sem_ruido(c_r, M), n_ang)
+               for nome, M in (('ES-MDA', mda_r), ('iES-LM', lm_r))}
+        for i in range(n_ang):
+            ax = eixos[r, i]
+            ax.axvspan(-sigma, sigma, color='0.5', alpha=0.15, lw=0,
+                       label='nível do ruído (±σ)')
+            ax.plot(res['ES-MDA'][i].ravel(), t_sis, '--', color=COR_MDA, lw=1.3,
+                    label='ES-MDA')
+            ax.plot(res['iES-LM'][i].ravel(), t_sis, color=COR_LM, lw=1.3, label='iES-LM')
+            ax.axvline(0, color='k', lw=0.8, ls=':')
+            ax.grid(alpha=0.3)
+            ax.xaxis.set_major_locator(MaxNLocator(4))
+            if r == 0:
+                ax.set_title('Resíduo sem ruído — %s' % fe.nome_angulo(cfg.angulos[i], i, n_ang))
+            if r == len(execucoes) - 1:
+                ax.set_xlabel('Sísmica verdadeira − prevista')
+        eixos[r, 0].set_ylabel('Semente %d\nTempo (s)' % c_r['cfg'].semente)
+    eixos[0, 0].set_ylim(t_sis.max(), t_sis.min())
+    fig.legend(*eixos[0, 0].get_legend_handles_labels(), loc='lower center', ncol=3,
+               fontsize=9, frameon=False)
+    fig.suptitle('Erro sistemático de cada método: sísmica do modelo verdadeiro '
+                 '(sem o ruído somado) menos a sísmica prevista', y=0.995)
+    fig.tight_layout(rect=(0, 0.03, 1, 1))
     salva_figura(fig, 'elastico_residuos')
 
     # Figura 6: convergencia e trajetoria da regularizacao

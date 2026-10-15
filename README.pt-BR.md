@@ -39,10 +39,10 @@ export SEREMPY_PATH=/caminho/para/SeReMpy
 
 ```bash
 python experimento_elastico.py          # uma comparação: tabela de métricas + figuras
-python sensibilidade.py --rapido        # estudo de sensibilidade reduzido (~15 s)
+python sensibilidade.py --rapido        # estudo reduzido, para conferir que o código roda (~15 s)
 python sensibilidade.py                 # estudo completo, 1.000 execuções (~5 min)
 python sensibilidade.py --relatorio     # refaz tabelas e figuras a partir do CSV
-python -m pytest tests/ -v              # 191 testes
+python -m pytest tests/ -v              # 195 testes
 ```
 
 As figuras vão para `figuras/`, cada uma em PNG e em PDF vetorial (os PDFs
@@ -106,7 +106,7 @@ problemas. Cada execução grava a configuração usada em
 | `metricas.py` | RMSE, envelope P10–P90, cobertura, erro de calibração, teste KS, sequência de $\alpha_l$ |
 | `dados.py` | Leitura dos dados e localização da SeReMpy |
 | `experimento.py`, `forward.py` | Caso anterior, de impedância acústica, mantido como caso de teste mais simples |
-| `tests/` | 191 testes |
+| `tests/` | 195 testes |
 | `data/` | Dois arquivos de dados redistribuídos da SeReMpy (MIT) |
 
 O `ieslm.py` **não conhece sísmica**: recebe o modelo direto como uma função

@@ -165,3 +165,30 @@ def test_figuras_de_sensibilidade_nos_dois_formatos(tmp_path, monkeypatch):
             assert (tmp_path / ('%s.%s' % (nome, formato))).exists()
     assert {'sensibilidade_eixos', 'sensibilidade_custo'} <= nomes
     assert {'sensibilidade_cruzada_%s' % cz.nome for cz in sens.CRUZADAS} <= nomes
+
+
+# ------------------------------------------------- residuos sem ruido ---
+
+def test_residuo_sem_ruido_e_zero_no_proprio_modelo_verdadeiro(cenario):
+    """Se todos os membros forem o modelo verdadeiro, nao sobra erro nenhum."""
+    M = np.repeat(cenario['verdadeiro'], 5, axis=1)
+
+    np.testing.assert_allclose(X.residuo_sem_ruido(cenario, M), 0.0, atol=1e-12)
+
+
+def test_residuo_sem_ruido_nao_contem_o_ruido_do_dado(cenario):
+    """O residuo contra d_obs inclui o ruido; o residuo sem ruido, nao."""
+    M = np.repeat(cenario['verdadeiro'], 5, axis=1)
+    contra_dado = cenario['d_obs'] - cenario['g'](M).mean(axis=1, keepdims=True)
+
+    assert np.abs(contra_dado).max() > 0
+    assert np.abs(X.residuo_sem_ruido(cenario, M)).max() < 1e-12
+
+
+def test_execucoes_extras_usam_as_sementes_seguintes():
+    cfg = dataclasses.replace(config.PADRAO, ne=20, semente=7)
+    extras = X.execucoes_extras(cfg, n=3)
+
+    assert [c['cfg'].semente for c, _, _ in extras] == [8, 9]
+    for c, Z_mda, Z_lm in extras:
+        assert Z_mda.shape == Z_lm.shape == c['prior'].shape

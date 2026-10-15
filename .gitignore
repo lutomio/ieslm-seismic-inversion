@@ -16,3 +16,7 @@ MUDANCAS.md
 *.pdf
 *.tex
 *.bib
+
+# Saidas da grade reduzida do estudo de sensibilidade (so para conferencia)
+resultados/sensibilidade_rapido.csv
+resultados/sensibilidade_rapido_config.json
