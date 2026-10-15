@@ -185,35 +185,37 @@ def _figuras(Z, Time, conjunto_inicial, Z_mda, Z_lm, hist_mda, res_lm):
     fig.savefig(os.path.join(PASTA_FIGURAS, 'perfis.png'), dpi=150)
     plt.close(fig)
 
-    # Figura 2: convergencia do desajuste e trajetoria de alpha
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4.5))
-
-    ax1.semilogy(range(len(hist_mda)), hist_mda, 'o-', color='tab:blue',
-                 label='ES-MDA (%d assimilacoes)' % (len(hist_mda) - 1))
-    ax1.semilogy(range(len(res_lm.desajuste)), res_lm.desajuste, 's-',
-                 color='tab:red', label='iES-LM (%d iteracoes)'
-                 % (len(res_lm.desajuste) - 1))
-    ax1.axvline(res_lm.iteracao_final, color='tab:red', ls=':', lw=1,
-                label='melhor iteracao do iES-LM')
-    ax1.set_xlabel('Iteracao')
-    ax1.set_ylabel(r'Desajuste medio $\bar{O}$')
-    ax1.set_title('Convergencia')
-    ax1.grid(alpha=0.3)
-    ax1.legend(fontsize=8)
-
-    ax2.semilogy(range(len(res_lm.alpha)), res_lm.alpha, 's-', color='tab:red',
-                 label=r'$\alpha^i$ adaptativo (iES-LM)')
-    ax2.axhline(len(hist_mda) - 1, color='tab:blue', ls='--',
-                label=r'$\alpha_i$ fixo (ES-MDA)')
-    ax2.set_xlabel('Iteracao')
-    ax2.set_ylabel(r'Regularizacao $\alpha$')
-    ax2.set_title('Regularizacao do passo: fixa x adaptativa')
-    ax2.grid(alpha=0.3)
-    ax2.legend(fontsize=8)
-
-    fig.tight_layout()
-    fig.savefig(os.path.join(PASTA_FIGURAS, 'convergencia.png'), dpi=150)
-    plt.close(fig)
+    # Desativada em 14/10/2026, a pedido: a figura nao e mais gerada.
+    # Para reativar, descomente o bloco abaixo.
+    # # Figura 2: convergencia do desajuste e trajetoria de alpha
+    # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4.5))
+    #
+    # ax1.semilogy(range(len(hist_mda)), hist_mda, 'o-', color='tab:blue',
+    #              label='ES-MDA (%d assimilacoes)' % (len(hist_mda) - 1))
+    # ax1.semilogy(range(len(res_lm.desajuste)), res_lm.desajuste, 's-',
+    #              color='tab:red', label='iES-LM (%d iteracoes)'
+    #              % (len(res_lm.desajuste) - 1))
+    # ax1.axvline(res_lm.iteracao_final, color='tab:red', ls=':', lw=1,
+    #             label='melhor iteracao do iES-LM')
+    # ax1.set_xlabel('Iteracao')
+    # ax1.set_ylabel(r'Desajuste medio $\bar{O}$')
+    # ax1.set_title('Convergencia')
+    # ax1.grid(alpha=0.3)
+    # ax1.legend(fontsize=8)
+    #
+    # ax2.semilogy(range(len(res_lm.alpha)), res_lm.alpha, 's-', color='tab:red',
+    #              label=r'$\alpha^i$ adaptativo (iES-LM)')
+    # ax2.axhline(len(hist_mda) - 1, color='tab:blue', ls='--',
+    #             label=r'$\alpha_i$ fixo (ES-MDA)')
+    # ax2.set_xlabel('Iteracao')
+    # ax2.set_ylabel(r'Regularizacao $\alpha$')
+    # ax2.set_title('Regularizacao do passo: fixa x adaptativa')
+    # ax2.grid(alpha=0.3)
+    # ax2.legend(fontsize=8)
+    #
+    # fig.tight_layout()
+    # fig.savefig(os.path.join(PASTA_FIGURAS, 'convergencia.png'), dpi=150)
+    # plt.close(fig)
 
     print('\nfiguras salvas em %s' % PASTA_FIGURAS)
 

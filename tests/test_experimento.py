@@ -70,7 +70,7 @@ def test_regularizacao_adaptativa_de_fato_variou(r):
 def test_figuras_foram_geradas(r):
     import os
 
-    for nome in ('perfis.png', 'convergencia.png'):
+    for nome in ('perfis.png',):  # convergencia.png desativada em 14/10/2026
         caminho = os.path.join(experimento.PASTA_FIGURAS, nome)
         assert os.path.exists(caminho)
         assert os.path.getsize(caminho) > 1000

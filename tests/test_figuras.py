@@ -137,8 +137,7 @@ def _executa_pequeno(cfg, pasta):
         X.PASTA_FIGURAS, X.PASTA_RESULTADOS = antes
 
 
-ELASTICO = ('elastico_perfis', 'elastico_detalhe', 'elastico_erro', 'elastico_ganho',
-            'elastico_residuos', 'elastico_convergencia')
+ELASTICO = ('elastico_perfis', 'elastico_detalhe', 'elastico_erro', 'elastico_residuos')
 
 
 @pytest.mark.parametrize('fator_ruido', [4.0, None])
@@ -150,6 +149,8 @@ def test_executa_gera_todas_as_figuras_nos_dois_formatos(tmp_path, fator_ruido):
         for formato in X.FORMATOS:
             assert (tmp_path / ('%s.%s' % (nome, formato))).exists()
     assert (r['res_sem_parada'] is None) == (fator_ruido is None)
+    for nome in ('elastico_ganho', 'elastico_convergencia'):  # desativadas
+        assert not (tmp_path / (nome + '.png')).exists()
 
 
 def test_figuras_de_sensibilidade_nos_dois_formatos(tmp_path, monkeypatch):
@@ -192,3 +193,16 @@ def test_execucoes_extras_usam_as_sementes_seguintes():
     assert [c['cfg'].semente for c, _, _ in extras] == [8, 9]
     for c, Z_mda, Z_lm in extras:
         assert Z_mda.shape == Z_lm.shape == c['prior'].shape
+
+
+def test_relatorio_de_sensibilidade_nao_gera_figuras(tmp_path, monkeypatch):
+    """As figuras do estudo foram desativadas; as tabelas continuam."""
+    csv = os.path.join(sens.PASTA_RESULTADOS, 'sensibilidade.csv')
+    if not os.path.exists(csv):
+        pytest.skip('resultados/sensibilidade.csv ainda nao foi gerado')
+    monkeypatch.setattr(sens, 'PASTA_FIGURAS', str(tmp_path))
+    with contextlib.redirect_stdout(io.StringIO()) as saida:
+        sens.relatorio(csv)
+
+    assert 'Balanco' in saida.getvalue()
+    assert not list(tmp_path.iterdir())

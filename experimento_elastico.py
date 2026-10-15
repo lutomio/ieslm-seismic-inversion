@@ -526,77 +526,79 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm, res_sem=None, extras=()):
     fig.tight_layout()
     salva_figura(fig, 'elastico_erro')
 
-    # Figura 4: razão de ganho — o mecanismo que rege a adaptação de alfa
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4.8))
-    rhos = res_lm.rho_por_membro
-    it = np.arange(1, len(rhos) + 1)
-    divergente = _iteracao_divergente(res_sem) if res_sem is not None else None
-
-    partes = ax1.violinplot(rhos, positions=it, widths=0.5, showextrema=True,
-                            showmedians=True)
-    for corpo in partes['bodies']:
-        corpo.set_facecolor(COR_LM)
-        corpo.set_alpha(0.45)
-    for chave in ('cmedians', 'cmins', 'cmaxes', 'cbars'):
-        if chave in partes:
-            partes[chave].set_color(COR_LM)
-    ax1.axhline(1.0, color='k', ls='--', lw=1.0,
-                label=r'$\rho=1$: linearização exata')
-
-    # Limites pela faixa conjunta das curvas, sem os valores explosivos:
-    # estes ficam marcados na borda (_marca_fora).
-    visiveis = list(np.concatenate(rhos))
-    if res_sem is not None:
-        it_sem = np.arange(1, len(res_sem.rho_mediano) + 1)
-        visiveis += [r for r in res_sem.rho_mediano if 0 <= r <= 2]
-    folga = max(0.08 * np.ptp(visiveis + [1.0]), 2e-3)
-    lo_rho = min(visiveis + [1.0]) - folga
-    hi_rho = max(visiveis + [1.0]) + folga
-    if res_sem is not None:
-        ax1.plot(it_sem, _dentro(res_sem.rho_mediano, lo_rho, hi_rho), 'o--',
-                 color=COR_LM, lw=1.2, ms=4, mfc='white', label='mediana sem a parada da Eq. 43')
-        _marca_fora(ax1, it_sem, res_sem.rho_mediano, lo_rho, hi_rho, COR_LM,
-                    r'$\rho \approx$ %s')
-    ax1.set_ylim(lo_rho, hi_rho)
-    ax1.set_xticks(np.arange(1, max(len(rhos), len(res_sem.rho_mediano)
-                                    if res_sem is not None else 0) + 1))
-    ax1.set_xlabel('Iteração')
-    ax1.set_ylabel(r'Razão de ganho $\rho_j$')
-    ax1.set_title(r'Distribuição de $\rho_j$ entre os %d membros' % cfg.ne)
-    ax1.grid(alpha=0.3)
-    ax1.legend(fontsize=8, loc='upper left')
-
-    fator = [np.median(mt_fator(r)) for r in rhos]
-    ax2.axhspan(1.0 / 3, 2.0, color='0.85', alpha=0.5, zorder=0)
-    ax2.plot(it, fator, 's-', color=COR_LM, lw=1.8, label='fator aplicado (mediana)')
-    if res_sem is not None:
-        fator_sem = [np.median(mt_fator(r)) for r in res_sem.rho_por_membro]
-        ax2.plot(it_sem, _dentro(fator_sem, 0.2, 2.15), 'o--',
-                 color=COR_LM, lw=1.2, ms=4, mfc='white', label='sem a parada da Eq. 43')
-        _marca_fora(ax2, it_sem, fator_sem, 0.2, 2.15, COR_LM,
-                    'fator %s,\nmas $\\alpha$ não cresce (Eq. 41)')
-    ax2.axhline(1 / 3, color='k', ls=':', lw=1.2,
-                label=r'piso da regra: $\gamma$ dividido por 3')
-    ax2.axhline(1.0, color='0.4', ls='--', lw=1.0, label=r'fator 1: $\gamma$ mantido')
-    ax2.axhline(2.0, color='0.4', ls='-.', lw=1.0, label=r'fator 2: $\gamma$ dobrado')
-    ax2.set_xticks(ax1.get_xticks())
-    ax2.set_ylim(0.2, 2.15)
-    ax2.set_xlabel('Iteração')
-    ax2.set_ylabel(r'Fator aplicado a $\gamma$')
-    ax2.set_title(r'Eq. 40: fator $\max(1/3,\ 1-(2\rho_j-1)^3)$')
-    ax2.grid(alpha=0.3)
-    ax2.legend(fontsize=8, loc='center right')
-
-    no_piso = all(abs(f - 1 / 3) < 1e-9 for f in fator)
-    titulo = 'Mecanismo de adaptação: '
-    titulo += ('com a parada, a linearização é fiel e a regra opera no piso'
-               if no_piso else 'razão de ganho e fator aplicado a $\\gamma$')
-    if divergente is not None:
-        titulo += '\nsem a parada, o passo diverge na iteração %d ($\\rho < 0$)' % divergente
-    fig.suptitle(titulo, y=0.99)
-    fig.tight_layout()
-    salva_figura(fig, 'elastico_ganho')
-
+    # Desativada em 14/10/2026, a pedido: a figura nao e mais gerada.
+    # Para reativar, descomente o bloco abaixo.
+    # # Figura 4: razão de ganho — o mecanismo que rege a adaptação de alfa
+    # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4.8))
+    # rhos = res_lm.rho_por_membro
+    # it = np.arange(1, len(rhos) + 1)
+    # divergente = _iteracao_divergente(res_sem) if res_sem is not None else None
+    #
+    # partes = ax1.violinplot(rhos, positions=it, widths=0.5, showextrema=True,
+    #                         showmedians=True)
+    # for corpo in partes['bodies']:
+    #     corpo.set_facecolor(COR_LM)
+    #     corpo.set_alpha(0.45)
+    # for chave in ('cmedians', 'cmins', 'cmaxes', 'cbars'):
+    #     if chave in partes:
+    #         partes[chave].set_color(COR_LM)
+    # ax1.axhline(1.0, color='k', ls='--', lw=1.0,
+    #             label=r'$\rho=1$: linearização exata')
+    #
+    # # Limites pela faixa conjunta das curvas, sem os valores explosivos:
+    # # estes ficam marcados na borda (_marca_fora).
+    # visiveis = list(np.concatenate(rhos))
+    # if res_sem is not None:
+    #     it_sem = np.arange(1, len(res_sem.rho_mediano) + 1)
+    #     visiveis += [r for r in res_sem.rho_mediano if 0 <= r <= 2]
+    # folga = max(0.08 * np.ptp(visiveis + [1.0]), 2e-3)
+    # lo_rho = min(visiveis + [1.0]) - folga
+    # hi_rho = max(visiveis + [1.0]) + folga
+    # if res_sem is not None:
+    #     ax1.plot(it_sem, _dentro(res_sem.rho_mediano, lo_rho, hi_rho), 'o--',
+    #              color=COR_LM, lw=1.2, ms=4, mfc='white', label='mediana sem a parada da Eq. 43')
+    #     _marca_fora(ax1, it_sem, res_sem.rho_mediano, lo_rho, hi_rho, COR_LM,
+    #                 r'$\rho \approx$ %s')
+    # ax1.set_ylim(lo_rho, hi_rho)
+    # ax1.set_xticks(np.arange(1, max(len(rhos), len(res_sem.rho_mediano)
+    #                                 if res_sem is not None else 0) + 1))
+    # ax1.set_xlabel('Iteração')
+    # ax1.set_ylabel(r'Razão de ganho $\rho_j$')
+    # ax1.set_title(r'Distribuição de $\rho_j$ entre os %d membros' % cfg.ne)
+    # ax1.grid(alpha=0.3)
+    # ax1.legend(fontsize=8, loc='upper left')
+    #
+    # fator = [np.median(mt_fator(r)) for r in rhos]
+    # ax2.axhspan(1.0 / 3, 2.0, color='0.85', alpha=0.5, zorder=0)
+    # ax2.plot(it, fator, 's-', color=COR_LM, lw=1.8, label='fator aplicado (mediana)')
+    # if res_sem is not None:
+    #     fator_sem = [np.median(mt_fator(r)) for r in res_sem.rho_por_membro]
+    #     ax2.plot(it_sem, _dentro(fator_sem, 0.2, 2.15), 'o--',
+    #              color=COR_LM, lw=1.2, ms=4, mfc='white', label='sem a parada da Eq. 43')
+    #     _marca_fora(ax2, it_sem, fator_sem, 0.2, 2.15, COR_LM,
+    #                 'fator %s,\nmas $\\alpha$ não cresce (Eq. 41)')
+    # ax2.axhline(1 / 3, color='k', ls=':', lw=1.2,
+    #             label=r'piso da regra: $\gamma$ dividido por 3')
+    # ax2.axhline(1.0, color='0.4', ls='--', lw=1.0, label=r'fator 1: $\gamma$ mantido')
+    # ax2.axhline(2.0, color='0.4', ls='-.', lw=1.0, label=r'fator 2: $\gamma$ dobrado')
+    # ax2.set_xticks(ax1.get_xticks())
+    # ax2.set_ylim(0.2, 2.15)
+    # ax2.set_xlabel('Iteração')
+    # ax2.set_ylabel(r'Fator aplicado a $\gamma$')
+    # ax2.set_title(r'Eq. 40: fator $\max(1/3,\ 1-(2\rho_j-1)^3)$')
+    # ax2.grid(alpha=0.3)
+    # ax2.legend(fontsize=8, loc='center right')
+    #
+    # no_piso = all(abs(f - 1 / 3) < 1e-9 for f in fator)
+    # titulo = 'Mecanismo de adaptação: '
+    # titulo += ('com a parada, a linearização é fiel e a regra opera no piso'
+    #            if no_piso else 'razão de ganho e fator aplicado a $\\gamma$')
+    # if divergente is not None:
+    #     titulo += '\nsem a parada, o passo diverge na iteração %d ($\\rho < 0$)' % divergente
+    # fig.suptitle(titulo, y=0.99)
+    # fig.tight_layout()
+    # salva_figura(fig, 'elastico_ganho')
+    #
     # Figura 5: residuo sem ruido, por angulo (colunas) e semente (linhas)
     n_ang = len(cfg.angulos)
     execucoes = [(c, Z_mda, Z_lm)] + list(extras)
@@ -630,57 +632,59 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm, res_sem=None, extras=()):
     fig.tight_layout(rect=(0, 0.03, 1, 1))
     salva_figura(fig, 'elastico_residuos')
 
-    # Figura 6: convergencia e trajetoria da regularizacao
-    def rmse_vp(M):
-        return _virgula(mt.rmse(fe.desempilha(M)[0], verd[0]))
-
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4.8))
-    ax1.semilogy(range(len(hist_mda)), hist_mda, 'o-', color=COR_MDA,
-                 label='ES-MDA (%d assimilações) — RMSE $V_p$ %s'
-                 % (len(hist_mda) - 1, rmse_vp(Z_mda)))
-    ax1.semilogy(range(len(res_lm.desajuste)), res_lm.desajuste, 's-', color=COR_LM,
-                 label='iES-LM (%d iterações) — RMSE $V_p$ %s'
-                 % (len(res_lm.desajuste) - 1, rmse_vp(Z_lm)))
-    if res_sem is not None:
-        ax1.semilogy(range(len(res_sem.desajuste)), res_sem.desajuste, 'o--',
-                     color=COR_LM, lw=1.2, ms=4, mfc='white',
-                     label='iES-LM sem a parada da Eq. 43 — RMSE $V_p$ %s'
-                     % rmse_vp(res_sem.conjunto))
-        k = res_sem.iteracao_final
-        ax1.plot(k, res_sem.desajuste[k], '*', color=COR_LM, ms=13, mfc='none',
-                 label='conjunto devolvido sem a parada (menor $\\bar{O}$)')
-        if divergente is not None:
-            ax1.annotate('passo divergente\n($\\rho_j < 0$)',
-                         xy=(divergente, res_sem.desajuste[divergente]),
-                         xytext=(-12, 0), textcoords='offset points', ha='right',
-                         va='center', fontsize=8, color=COR_LM)
-    ax1.axhline(0.5, color='k', ls=':', lw=1.2, label='nível do ruído ($\\bar{O}=0{,}5$)')
-    ax1.axhspan(1e-3, 0.5, color='0.35', alpha=0.08, zorder=0)
-    ax1.set_ylim(bottom=0.6 * min(min(hist_mda), min(res_lm.desajuste),
-                                  min(res_sem.desajuste) if res_sem is not None else 1.0))
-    ax1.text(0.98, 0.03, 'abaixo do ruído: sobreajuste', transform=ax1.transAxes,
-             ha='right', va='bottom', fontsize=8, color='0.35')
-    ax1.set_xlabel('Iteração')
-    ax1.set_ylabel(r'Desajuste médio $\bar{O}$')
-    ax1.set_title('Convergência')
-    ax1.grid(alpha=0.3)
-    ax1.legend(fontsize=7.5)
-
-    ax2.semilogy(range(len(res_lm.alpha)), res_lm.alpha, 's-', color=COR_LM,
-                 label=r'$\alpha^i$ adaptativo (iES-LM)')
-    if res_sem is not None:
-        ax2.semilogy(range(len(res_sem.alpha)), res_sem.alpha, 'o--', color=COR_LM,
-                     lw=1.2, ms=4, mfc='white', label='iES-LM sem a parada da Eq. 43')
-    alphas = mt.sequencia_alpha_esmda(cfg.n_assimilacoes, razao=cfg.razao_alpha)
-    ax2.semilogy(range(1, len(alphas) + 1), alphas, 'o--', color=COR_MDA,
-                 label=r'$\alpha_l$ decrescente (ES-MDA)')
-    ax2.set_xlabel('Iteração')
-    ax2.set_ylabel(r'Regularização $\alpha$')
-    ax2.set_title('Regularização do passo: predefinida × adaptativa')
-    ax2.grid(alpha=0.3)
-    ax2.legend(fontsize=8)
-    fig.tight_layout()
-    salva_figura(fig, 'elastico_convergencia')
+    # Desativada em 14/10/2026, a pedido: a figura nao e mais gerada.
+    # Para reativar, descomente o bloco abaixo.
+    # # Figura 6: convergencia e trajetoria da regularizacao
+    # def rmse_vp(M):
+    #     return _virgula(mt.rmse(fe.desempilha(M)[0], verd[0]))
+    #
+    # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4.8))
+    # ax1.semilogy(range(len(hist_mda)), hist_mda, 'o-', color=COR_MDA,
+    #              label='ES-MDA (%d assimilações) — RMSE $V_p$ %s'
+    #              % (len(hist_mda) - 1, rmse_vp(Z_mda)))
+    # ax1.semilogy(range(len(res_lm.desajuste)), res_lm.desajuste, 's-', color=COR_LM,
+    #              label='iES-LM (%d iterações) — RMSE $V_p$ %s'
+    #              % (len(res_lm.desajuste) - 1, rmse_vp(Z_lm)))
+    # if res_sem is not None:
+    #     ax1.semilogy(range(len(res_sem.desajuste)), res_sem.desajuste, 'o--',
+    #                  color=COR_LM, lw=1.2, ms=4, mfc='white',
+    #                  label='iES-LM sem a parada da Eq. 43 — RMSE $V_p$ %s'
+    #                  % rmse_vp(res_sem.conjunto))
+    #     k = res_sem.iteracao_final
+    #     ax1.plot(k, res_sem.desajuste[k], '*', color=COR_LM, ms=13, mfc='none',
+    #              label='conjunto devolvido sem a parada (menor $\\bar{O}$)')
+    #     if divergente is not None:
+    #         ax1.annotate('passo divergente\n($\\rho_j < 0$)',
+    #                      xy=(divergente, res_sem.desajuste[divergente]),
+    #                      xytext=(-12, 0), textcoords='offset points', ha='right',
+    #                      va='center', fontsize=8, color=COR_LM)
+    # ax1.axhline(0.5, color='k', ls=':', lw=1.2, label='nível do ruído ($\\bar{O}=0{,}5$)')
+    # ax1.axhspan(1e-3, 0.5, color='0.35', alpha=0.08, zorder=0)
+    # ax1.set_ylim(bottom=0.6 * min(min(hist_mda), min(res_lm.desajuste),
+    #                               min(res_sem.desajuste) if res_sem is not None else 1.0))
+    # ax1.text(0.98, 0.03, 'abaixo do ruído: sobreajuste', transform=ax1.transAxes,
+    #          ha='right', va='bottom', fontsize=8, color='0.35')
+    # ax1.set_xlabel('Iteração')
+    # ax1.set_ylabel(r'Desajuste médio $\bar{O}$')
+    # ax1.set_title('Convergência')
+    # ax1.grid(alpha=0.3)
+    # ax1.legend(fontsize=7.5)
+    #
+    # ax2.semilogy(range(len(res_lm.alpha)), res_lm.alpha, 's-', color=COR_LM,
+    #              label=r'$\alpha^i$ adaptativo (iES-LM)')
+    # if res_sem is not None:
+    #     ax2.semilogy(range(len(res_sem.alpha)), res_sem.alpha, 'o--', color=COR_LM,
+    #                  lw=1.2, ms=4, mfc='white', label='iES-LM sem a parada da Eq. 43')
+    # alphas = mt.sequencia_alpha_esmda(cfg.n_assimilacoes, razao=cfg.razao_alpha)
+    # ax2.semilogy(range(1, len(alphas) + 1), alphas, 'o--', color=COR_MDA,
+    #              label=r'$\alpha_l$ decrescente (ES-MDA)')
+    # ax2.set_xlabel('Iteração')
+    # ax2.set_ylabel(r'Regularização $\alpha$')
+    # ax2.set_title('Regularização do passo: predefinida × adaptativa')
+    # ax2.grid(alpha=0.3)
+    # ax2.legend(fontsize=8)
+    # fig.tight_layout()
+    # salva_figura(fig, 'elastico_convergencia')
 
     print('\nfiguras salvas em %s (%s)' % (PASTA_FIGURAS, ', '.join(FORMATOS)))
 

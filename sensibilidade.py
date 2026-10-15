@@ -318,11 +318,10 @@ def executa(rapido=False):
                      for cz in CRUZADAS},
                  sementes=n_sem)
     _resumo(linhas)
-    if rapido:
-        print('\nGrade reduzida: figuras nao geradas (as do estudo completo foram '
-              'preservadas).')
-    else:
-        _figuras(linhas)
+    # Figuras do estudo desativadas em 14/10/2026, a pedido: as tabelas acima
+    # continuam sendo impressas. Para reativar, descomente as linhas abaixo.
+    # if not rapido:
+    #     _figuras(linhas)
 
     return linhas
 
@@ -372,7 +371,9 @@ def relatorio(caminho=None):
     linhas = carrega_csv(caminho)
     print('%d execucoes lidas do CSV' % len(linhas))
     _resumo(linhas)
-    _figuras(linhas)
+    # Figuras do estudo desativadas em 14/10/2026, a pedido. Para reativar,
+    # descomente a linha abaixo.
+    # _figuras(linhas)
     return linhas
 
 
