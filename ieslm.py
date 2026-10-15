@@ -20,7 +20,10 @@ de regiao de confianca baseada na razao de ganho rho_j.
 Onde cada parte esta no artigo (pagina impressa da revista; o PDF comeca na
 p. 415):
 
-    Eqs. 26-27  p. 420-421  observacao perturbada, xi ~ N(0, alpha^i C_D)
+    Texto das   p. 420-421  observacao perturbada: xi ~ N(0, alpha^i C_D), logo
+    Eqs. 26-27              apos a Eq. 26; d^o = d_obs + xi, logo apos a Eq. 27
+                            (as Eqs. 26-27 em si sao atualizacoes, precursoras
+                            da Eq. 32; o passo explicito esta no Algoritmo 2)
     Eqs. 30-31  p. 421      covariancias C_MD e C_DD estimadas pelo conjunto
     Eq. 32      p. 421      atualizacao de cada membro
     Eq. 34      p. 422      objetivo de cada membro (dado perturbado)
@@ -39,7 +42,7 @@ Variaveis do codigo e simbolos do artigo:
     M, M_novo      {m_j^i}, {m_j^(i+1)}   conjunto de modelos (uma coluna por membro)
     G, G_novo      {g(m_j^i)}             previsoes do modelo direto
     d_obs          d_obs                  dado observado
-    d_pert         d^o_(i,j)              dado perturbado do membro j (Eq. 27)
+    d_pert         d^o_(i,j)              dado perturbado do membro j (texto apos a Eq. 27)
     C_D            C_D                    covariancia do erro de medicao
     C_MD, C_DD     C_MD^i, C_DD^i         covariancias do conjunto (Eqs. 30-31)
     alpha          alpha^i                parametro de regularizacao (Eqs. 32, 41)
@@ -265,8 +268,11 @@ def perturba_observacao(d_obs, alpha, raiz_C_D, ne, rng):
     """
     PERTURBA OBSERVACAO
     Gera uma realizacao da observacao para cada membro,
-    d^o_(i,j) = d_obs + xi_j^i, com xi_j^i ~ N(0, alpha^i C_D)
-    (Eqs. 26-27, p. 420-421, e Algoritmo 2, p. 422).
+    d^o_(i,j) = d_obs + xi_j^i, com xi_j^i ~ N(0, alpha^i C_D).
+
+    Definida no texto que acompanha as Eqs. 26 e 27 (p. 420-421): a
+    distribuicao de xi logo apos a Eq. 26, e d^o = d_obs + xi logo apos a
+    Eq. 27. O passo aparece explicito no Algoritmo 2 (p. 422).
 
     O iES-LM regera essas perturbacoes A CADA ITERACAO, com a covariancia
     escalada pelo alpha corrente - e uma das diferencas em relacao aos
@@ -385,7 +391,7 @@ def ieslm(prior, d_obs, g, C_D, gamma0=1.0, max_iter=20, eta1=1e-4, eta2=1e-2,
     ne = M.shape[1]  # N_e, tamanho do conjunto
 
     C_D_inv = np.linalg.inv(C_D)  # C_D^-1 das Eqs. 34, 39 e 42
-    raiz_C_D = _raiz_covariancia(C_D)  # C_D^(1/2), para sortear xi (Eq. 26)
+    raiz_C_D = _raiz_covariancia(C_D)  # C_D^(1/2), para sortear xi ~ N(0, alpha C_D)
 
     def trunca(X):
         # Secao 4.4 (p. 423): valores fora da faixa fisica voltam ao limite
@@ -419,9 +425,10 @@ def ieslm(prior, d_obs, g, C_D, gamma0=1.0, max_iter=20, eta1=1e-4, eta2=1e-2,
             motivo = 'alpha degenerado (desajuste nulo)'
             break
 
-        # Eqs. 26-27 (p. 420-421): d^o_(i,j) = d_obs + xi_j^i, xi ~ N(0, alpha^i C_D).
-        # O Algoritmo 2 gera este dado no fim da iteracao anterior, ja com o
-        # alpha atualizado; gera-lo aqui, no comeco da seguinte, e equivalente.
+        # Algoritmo 2 (p. 422): d^o_(i,j) = d_obs + xi_j^i, xi ~ N(0, alpha^i C_D)
+        # (definido no texto apos as Eqs. 26 e 27, p. 420-421). O Algoritmo 2
+        # gera este dado no fim da iteracao anterior, ja com o alpha
+        # atualizado; gera-lo aqui, no comeco da seguinte, e equivalente.
         d_pert = perturba_observacao(d_obs, alpha, raiz_C_D, ne, rng)
 
         # Eqs. 30-31 (p. 421): C_MD^i e C_DD^i estimadas pelo conjunto
@@ -431,7 +438,7 @@ def ieslm(prior, d_obs, g, C_D, gamma0=1.0, max_iter=20, eta1=1e-4, eta2=1e-2,
         R = d_pert - G  # d^o_(i,j) - g(m_j^i): o quanto cada membro erra
         # v = (C_DD + alpha C_D)^-1 r, reaproveitado na Eq. 38
         V = _resolve(C_DD + alpha * C_D, R)
-        M_novo = trunca(M + C_MD @ V)  # {m_j^(i+1)}, truncado (Secao 4.4)
+        M_novo = trunca(M + C_MD @ V)
 
         G_novo = g(M_novo)  # {g(m_j^(i+1))}: a unica simulacao da iteracao
         n_aval += 1
