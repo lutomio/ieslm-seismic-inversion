@@ -430,10 +430,10 @@ def ieslm(prior, d_obs, g, C_D, gamma0=1.0, max_iter=20, eta1=1e-4, eta2=1e-2,
         # atualizado; gera-lo aqui, no comeco da seguinte, e equivalente.
         d_pert = perturba_observacao(d_obs, alpha, raiz_C_D, ne, rng)
 
-        # Eqs. 30-31 : C_MD^i e C_DD^i estimadas pelo conjunto
+        # Eqs. 30-31: C_MD^i e C_DD^i estimadas pelo conjunto
         C_MD, C_DD = covariancias(M, G)
 
-        # Eq. 32 : m_j^(i+1) = m_j^i + C_MD (C_DD + alpha C_D)^-1 (d^o_(i,j) - g(m_j^i))
+        # Eq. 32: m_j^(i+1) = m_j^i + C_MD (C_DD + alpha C_D)^-1 (d^o_(i,j) - g(m_j^i))
         R = d_pert - G  # d^o_(i,j) - g(m_j^i): o quanto cada membro erra
         # v = (C_DD + alpha C_D)^-1 r, reaproveitado na Eq. 38
         V = _resolve(C_DD + alpha * C_D, R) #decide o tamanho do passo
@@ -442,7 +442,7 @@ def ieslm(prior, d_obs, g, C_D, gamma0=1.0, max_iter=20, eta1=1e-4, eta2=1e-2,
         G_novo = g(M_novo)  # {g(m_j^(i+1))}: a unica simulacao da iteracao
         n_aval += 1
 
-        # Eq. 34 , com o MESMO dado perturbado nos dois pontos, como o
+        # Eq. 34, com o MESMO dado perturbado nos dois pontos, como o
         # artigo exige ao comentar o Algoritmo 2
         O_atual = objetivo_por_membro(d_pert, G, C_D_inv)  # O_j^i(m_j^i)
         O_novo = objetivo_por_membro(d_pert, G_novo, C_D_inv)  # O_j^i(m_j^(i+1))

@@ -123,7 +123,7 @@ def limites_fisicos(Z, folga_inferior=0.5, folga_superior=1.5):
     Faixa de truncamento para os modelos, derivada do perfil de referencia.
 
     O artigo trunca os parametros aos limites quando saem da faixa admissivel
-    (Secao 4.3). Aqui a faixa e uma folga em torno do perfil verdadeiro.
+    (Secao 4.4). Aqui a faixa e uma folga em torno do perfil verdadeiro.
 
     Parameters
     ----------
