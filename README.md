@@ -164,7 +164,85 @@ values.
 
 ## Results
 
-Twenty seeds per configuration, paired. "Significant" means p < 0.05.
+Twenty seeds per configuration, paired (seeds 42 to 61). "Significant" means
+p < 0.05 in the paired Wilcoxon test.
+
+### Main test: T01, SeReMpy driver inputs
+
+This is the experiment presented in the thesis (`python bateria.py T01`). It
+uses the same inputs as SeReMpy's `ESSeisInversionDriver.py`: N_e = 500, 45 Hz
+Ricker wavelet, angles of 15°, 30° and 45°, C_D = 1e-4 I, and ES-MDA with
+N_a = 4 and constant α = 4. The only difference is the observed data, generated
+from the well log with noise of variance 1e-4 to avoid an inverse crime.
+iES-LM uses γ⁰ = 1 and the Eq. 43 stopping rule with constant 4.
+
+| Metric | Property | ES-MDA | iES-LM | Difference | p |
+|---|---|---|---|---|---|
+| RMSE | V_p (km/s) | 0.1534 | 0.1558 | +1.6% | 0.011 |
+| | V_s (km/s) | 0.1173 | 0.1204 | +2.7% | 0.004 |
+| | ρ (g/cm³) | 0.0465 | 0.0495 | +6.4% | < 0.001 |
+| P10–P90 envelope width | V_p | 0.306 | 0.457 | +50% | < 0.001 |
+| | V_s | 0.229 | 0.347 | +51% | < 0.001 |
+| | ρ | 0.118 | 0.154 | +31% | < 0.001 |
+| Coverage (ideal 0.8) | V_p | 0.72 | 0.86 | | < 0.001 |
+| | V_s | 0.71 | 0.85 | | < 0.001 |
+| | ρ | 0.79 | 0.87 | | < 0.001 |
+| Calibration error, \|coverage − 0.8\| | V_p | 0.080 | 0.059 | | 0.043 |
+| | V_s | 0.085 | 0.048 | | 0.001 |
+| | ρ | 0.020 | 0.070 | | < 0.001 |
+| Forward-model evaluations | | 5 | 2 | | |
+| Time per inversion (s) | | 0.52 | 0.20 | | |
+
+- **Accuracy:** ES-MDA has a slightly lower RMSE for all three properties. The
+  difference is small but significant. Both reduce the error of the prior mean
+  by similar amounts: 22% to 26% for the velocities and 34% to 38% for density.
+- **Uncertainty:** the iES-LM envelope is wider. iES-LM is better calibrated
+  for V_p and V_s, and ES-MDA is better calibrated for ρ. The calibration
+  advantage does not hold for all three properties.
+- **Data fit:** against the noise-free seismic of the reference profile, the
+  residual RMS is 0.0035 for ES-MDA and 0.0054 for iES-LM, both below the noise
+  standard deviation (0.01), with p < 0.001 at every angle. The final mean
+  mismatch Ō is 0.50 for ES-MDA, the same level as the reference profile
+  itself, and 1.18 for iES-LM.
+- **Iterations:** iES-LM makes **a single update** in every seed. After the
+  first iteration the mismatch is already below the Eq. 43 threshold (Ō < 2).
+  The median gain ratio lies between 0.9985 and 0.9991, so the problem is
+  nearly linear at this scale and the adaptive rule barely comes into play.
+- **Cost:** 2 forward-model evaluations against 5. This is why iES-LM runs 2.6
+  times faster: over 90% of both methods' time is spent in the forward model.
+  Times were measured on an Apple M3 Pro with Python 3.13 and NumPy 2.4.
+- **Without Eq. 43**, forcing a fixed number of iterations:
+
+  | Iterations | Final Ō | Median ρ_j | RMSE of V_p | Coverage of V_p |
+  |---|---|---|---|---|
+  | 1 | 1.18 | 0.999 | 0.156 | 0.86 |
+  | 2 | 0.47 | 0.997 | 0.162 | 0.63 |
+  | 3 | 0.42 | 0.992 | 0.209 | 0.40 |
+  | 4 | 0.41 | 0.986 | 0.297 | 0.23 |
+  | 5 | 0.40 | 0.983 | 0.444 | 0.11 |
+
+  From the second iteration on, the ensemble starts fitting the noise, and the
+  gain ratio stays close to 1 without detecting it. With the default limit of
+  10 iterations, the V_p RMSE reaches 2.08 and coverage drops to zero. In this
+  scenario, the Eq. 43 stopping rule is what keeps the method on track.
+
+First seed: estimated profiles (P10–P90 envelopes), detail of the window where
+the means differ most, error of the mean against the reference, and noise-free
+residual per angle:
+
+![T01 profiles](figuras/testes/T01_serempy/T01_serempy__elastico_perfis.png)
+![T01 detail](figuras/testes/T01_serempy/T01_serempy__elastico_detalhe.png)
+![T01 error](figuras/testes/T01_serempy/T01_serempy__elastico_erro.png)
+![T01 residuals](figuras/testes/T01_serempy/T01_serempy__elastico_residuos.png)
+
+Full results of the 17 battery tests are in
+`resultados/bateria/bateria_resumo.txt` (68 statistical tests without
+multiple-comparison correction: about 3.4 false positives expected).
+
+### Sensitivity study, `config.PADRAO` scenario
+
+This study varies one factor at a time from a different scenario (SNR 10,
+N_e = 200, ES-MDA with decreasing α_l).
 
 **At equal cost** (3 forward-model evaluations each: iES-LM against ES-MDA
 with two assimilations; 20 of 20 seeds paired):

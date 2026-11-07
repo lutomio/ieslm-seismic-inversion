@@ -158,8 +158,87 @@ calculáveis à mão.
 
 ## Resultados
 
-Vinte sementes por configuração, pareadas. "Significativo" quer dizer
-p < 0,05.
+Vinte sementes por configuração, pareadas (sementes 42 a 61). "Significativo"
+quer dizer p < 0,05 no teste de Wilcoxon pareado.
+
+### Teste principal: T01, entradas do driver da SeReMpy
+
+É o experimento apresentado no TCC (`python bateria.py T01`). Usa as mesmas
+entradas do `ESSeisInversionDriver.py` da SeReMpy: $N_e = 500$, wavelet de
+Ricker de 45 Hz, ângulos de 15°, 30° e 45°, $C_D = 10^{-4} I$ e ES-MDA com
+$N_a = 4$ e $\alpha = 4$ constante. A única diferença é o dado observado, gerado
+do poço com ruído de variância $10^{-4}$, para evitar o *inverse crime*. O
+iES-LM usa $\gamma^0 = 1$ e a parada da Eq. 43 com constante 4.
+
+| Métrica | Propriedade | ES-MDA | iES-LM | Diferença | p |
+|---|---|---|---|---|---|
+| RMSE | $V_p$ (km/s) | 0,1534 | 0,1558 | +1,6% | 0,011 |
+| | $V_s$ (km/s) | 0,1173 | 0,1204 | +2,7% | 0,004 |
+| | $\rho$ (g/cm³) | 0,0465 | 0,0495 | +6,4% | < 0,001 |
+| Largura do envelope P10–P90 | $V_p$ | 0,306 | 0,457 | +50% | < 0,001 |
+| | $V_s$ | 0,229 | 0,347 | +51% | < 0,001 |
+| | $\rho$ | 0,118 | 0,154 | +31% | < 0,001 |
+| Cobertura (ideal 0,8) | $V_p$ | 0,72 | 0,86 | | < 0,001 |
+| | $V_s$ | 0,71 | 0,85 | | < 0,001 |
+| | $\rho$ | 0,79 | 0,87 | | < 0,001 |
+| Erro de calibração, $\lvert\text{cobertura} - 0{,}8\rvert$ | $V_p$ | 0,080 | 0,059 | | 0,043 |
+| | $V_s$ | 0,085 | 0,048 | | 0,001 |
+| | $\rho$ | 0,020 | 0,070 | | < 0,001 |
+| Avaliações do modelo direto | | 5 | 2 | | |
+| Tempo por inversão (s) | | 0,52 | 0,20 | | |
+
+- **Precisão:** o ES-MDA tem RMSE ligeiramente menor nas três propriedades. A
+  diferença é pequena, mas significativa. Os dois reduzem o erro da média
+  *a priori* em proporções parecidas: de 22% a 26% nas velocidades e de 34% a
+  38% na densidade.
+- **Incerteza:** o envelope do iES-LM é mais largo. Ele é mais calibrado em
+  $V_p$ e $V_s$, e o ES-MDA é mais calibrado em $\rho$. A vantagem de
+  calibração não vale para as três propriedades.
+- **Ajuste aos dados:** comparado com a sísmica do perfil de referência sem
+  ruído, o RMS do resíduo é 0,0035 no ES-MDA e 0,0054 no iES-LM, ambos abaixo
+  do desvio padrão do ruído (0,01), com p < 0,001 em cada ângulo. O
+  desajuste médio final $\bar{O}$ é 0,50 no ES-MDA, o mesmo nível do próprio
+  perfil de referência, e 1,18 no iES-LM.
+- **Iterações:** o iES-LM faz **uma só atualização** em todas as sementes. Na
+  primeira iteração, o desajuste fica abaixo do limiar da Eq. 43 ($\bar{O} < 2$).
+  A mediana da razão de ganho fica entre 0,9985 e 0,9991, ou seja, o problema
+  é quase linear nessa escala e a regra adaptativa quase não atua.
+- **Custo:** 2 avaliações do modelo direto contra 5. Por isso o iES-LM roda
+  2,6 vezes mais rápido: mais de 90% do tempo dos dois métodos está no modelo
+  direto. Os tempos foram medidos em um Apple M3 Pro com Python 3.13 e
+  NumPy 2.4.
+- **Sem a Eq. 43**, forçando um número fixo de iterações:
+
+  | Iterações | $\bar{O}$ final | Mediana de $\rho_j$ | RMSE de $V_p$ | Cobertura de $V_p$ |
+  |---|---|---|---|---|
+  | 1 | 1,18 | 0,999 | 0,156 | 0,86 |
+  | 2 | 0,47 | 0,997 | 0,162 | 0,63 |
+  | 3 | 0,42 | 0,992 | 0,209 | 0,40 |
+  | 4 | 0,41 | 0,986 | 0,297 | 0,23 |
+  | 5 | 0,40 | 0,983 | 0,444 | 0,11 |
+
+  A partir da segunda iteração, o conjunto passa a ajustar o ruído, e a razão
+  de ganho continua perto de 1, sem detectar o problema. Com o limite padrão de
+  10 iterações, o RMSE de $V_p$ chega a 2,08 e a cobertura a zero. Neste
+  cenário, é a parada pela Eq. 43 que sustenta o método.
+
+Primeira semente: perfis estimados (envelopes P10–P90), detalhe da janela em
+que as médias mais divergem, erro da média em relação à referência e resíduo
+sem ruído por ângulo:
+
+![Perfis do T01](figuras/testes/T01_serempy/T01_serempy__elastico_perfis.png)
+![Detalhe do T01](figuras/testes/T01_serempy/T01_serempy__elastico_detalhe.png)
+![Erro do T01](figuras/testes/T01_serempy/T01_serempy__elastico_erro.png)
+![Resíduos do T01](figuras/testes/T01_serempy/T01_serempy__elastico_residuos.png)
+
+O resultado completo dos 17 testes da bateria está em
+`resultados/bateria/bateria_resumo.txt` (68 testes estatísticos sem correção
+para comparações múltiplas: cerca de 3,4 falsos positivos esperados).
+
+### Estudo de sensibilidade, cenário `config.PADRAO`
+
+O estudo varia um fator por vez a partir de outro cenário (SNR 10, $N_e = 200$,
+ES-MDA com $\alpha_l$ decrescente).
 
 **No mesmo custo** (3 avaliações do modelo direto para cada um: iES-LM contra
 ES-MDA com duas assimilações; 20 de 20 sementes pareadas):
