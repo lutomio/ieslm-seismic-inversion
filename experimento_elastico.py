@@ -23,7 +23,7 @@ from dataclasses import replace
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator, ScalarFormatter
 import numpy as np
 
 import config
@@ -371,7 +371,7 @@ def _painel(ax, Time, verd, conjuntos, titulo, xlabel, zoom=None):
         p10, p90 = mt.envelope(conj)
         ax.fill_betweenx(Time.ravel(), p10, p90, color=cor, alpha=0.30, lw=0)
         ax.plot(conj.mean(axis=1), Time, color=cor, lw=1.6, label=rotulo)
-    ax.plot(verd, Time, 'k', lw=1.8, label='modelo de referência')
+    ax.plot(verd, Time, 'k', lw=1.8, label='perfil de referência')
     ax.set_ylim(Time.max(), Time.min())
     ax.set_xlabel(xlabel)
     ax.set_title(titulo)
@@ -404,7 +404,7 @@ def _painel_detalhe(ax, Time, verd, conjuntos, titulo, xlabel, zoom):
         p10, p90 = mt.envelope(conj)
         ax.fill_betweenx(t[dentro], p10[dentro], p90[dentro], color=cor, alpha=0.30, lw=0)
         ax.plot(conj.mean(axis=1)[dentro], t[dentro], color=cor, lw=1.8, label=rotulo)
-    ax.plot(v, t[dentro], 'k', lw=2.0, label='modelo de referência')
+    ax.plot(v, t[dentro], 'k', lw=2.0, label='perfil de referência')
     ax.set_ylim(zoom[1], zoom[0])
     ax.set_xlabel(xlabel)
     ax.set_title(titulo)
@@ -414,6 +414,20 @@ def _painel_detalhe(ax, Time, verd, conjuntos, titulo, xlabel, zoom):
     hi = max([v.max()] + [mt.envelope(c)[1][dentro].max() for c, _, _ in conjuntos])
     folga = 0.06 * (hi - lo)
     ax.set_xlim(lo - folga, hi + folga)
+
+
+class _FormatoVirgula(ScalarFormatter):
+    """Marcas dos eixos com virgula decimal, como no texto do TCC."""
+
+    def __call__(self, x, pos=None):
+        return super().__call__(x, pos).replace('.', ',')
+
+
+def _virgula_nos_eixos(fig):
+    """Troca o ponto decimal pela virgula nas marcas de todos os eixos."""
+    for ax in fig.axes:
+        ax.xaxis.set_major_formatter(_FormatoVirgula())
+        ax.yaxis.set_major_formatter(_FormatoVirgula())
 
 
 def _virgula(x, casas=3):
@@ -483,6 +497,7 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm, res_sem=None, extras=(),
     os.makedirs(pasta, exist_ok=True)
 
     def _salva(fig, nome):
+        _virgula_nos_eixos(fig)
         if rotulo:
             fig.text(0.005, 0.005, rotulo, ha='left', va='bottom', fontsize=8, color='0.3')
         salva_figura(fig, prefixo + nome, pasta)
@@ -509,7 +524,6 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm, res_sem=None, extras=(),
     eixos[1, 0].set_ylabel('Tempo (s)')
     eixos[0, 0].legend(loc='lower right', fontsize=8)
     eixos[1, 0].legend(loc='lower right', fontsize=8)
-    fig.suptitle('Propriedades elásticas estimadas (envelopes P10–P90)', y=0.98)
     fig.tight_layout()
     _salva(fig, 'elastico_perfis')
 
@@ -521,8 +535,6 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm, res_sem=None, extras=(),
                         titulos[i], rotulos[i], janela)
     eixos[0].set_ylabel('Tempo (s)')
     eixos[0].legend(loc='best', fontsize=9)
-    fig.suptitle('Detalhe da janela %.3f–%.3f s: onde os métodos mais divergem'
-                 % janela, y=0.98)
     fig.tight_layout()
     _salva(fig, 'elastico_detalhe')
 
@@ -544,7 +556,6 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm, res_sem=None, extras=(),
         ax.grid(alpha=0.3)
     eixos[0].set_ylabel('Tempo (s)')
     eixos[0].legend(loc='lower right', fontsize=8)
-    fig.suptitle('Erro de estimativa (média do conjunto − referência)', y=0.98)
     fig.tight_layout()
     _salva(fig, 'elastico_erro')
 
@@ -644,13 +655,11 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm, res_sem=None, extras=(),
             if r == 0:
                 ax.set_title('Resíduo sem ruído — %s' % fe.nome_angulo(cfg.angulos[i], i, n_ang))
             if r == len(execucoes) - 1:
-                ax.set_xlabel('Sísmica verdadeira − prevista')
+                ax.set_xlabel('Sísmica de referência − prevista')
         eixos[r, 0].set_ylabel('Semente %d\nTempo (s)' % c_r['cfg'].semente)
     eixos[0, 0].set_ylim(t_sis.max(), t_sis.min())
     fig.legend(*eixos[0, 0].get_legend_handles_labels(), loc='lower center', ncol=3,
                fontsize=9, frameon=False)
-    fig.suptitle('Erro sistemático de cada método: sísmica do modelo verdadeiro '
-                 '(sem o ruído somado) menos a sísmica prevista', y=0.995)
     fig.tight_layout(rect=(0, 0.03, 1, 1))
     _salva(fig, 'elastico_residuos')
 
