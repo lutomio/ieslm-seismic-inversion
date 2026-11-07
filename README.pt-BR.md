@@ -39,6 +39,7 @@ export SEREMPY_PATH=/caminho/para/SeReMpy
 
 ```bash
 python experimento_elastico.py          # uma comparação: tabela de métricas + figuras
+python bateria.py                       # bateria de 17 testes a partir das entradas do driver da SeReMpy (T01 = principal)
 python sensibilidade.py --rapido        # estudo reduzido, para conferir que o código roda (~15 s)
 python sensibilidade.py                 # estudo completo, 1.000 execuções (~5 min)
 python sensibilidade.py --relatorio     # refaz tabelas e figuras a partir do CSV
@@ -47,7 +48,19 @@ python -m pytest tests/ -v              # 196 testes
 
 As figuras vão para `figuras/`, cada uma em PNG e em PDF vetorial (os PDFs
 não são versionados; os comandos acima os regeneram). As execuções do estudo,
-uma por linha, vão para `resultados/sensibilidade.csv`.
+uma por linha, vão para `resultados/sensibilidade.csv`; os resultados da
+bateria, para `resultados/bateria/`.
+
+As figuras versionadas são as usadas no TCC:
+
+- `figuras/testes/T01_serempy/`: resultados do teste principal (T01, primeira
+  semente): perfis estimados, detalhe da janela em que os métodos mais
+  divergem, erro de estimativa e resíduo sem ruído por ângulo. No TCC elas
+  foram geradas sem o rótulo do teste que o `bateria.py` escreve no canto.
+- `figuras/tese/`: figuras explicativas (aquisição sísmica, modelo direto,
+  não unicidade do problema inverso, fluxograma da iteração dos dois métodos
+  e esquema do experimento). Usam o código deste repositório, mas são geradas
+  por scripts do texto que não estão versionados aqui.
 
 ## Como mudar as entradas
 
@@ -100,6 +113,7 @@ problemas. Cada execução grava a configuração usada em
 | `config.py` | Todas as entradas do experimento num só lugar (`Configuracao`) |
 | `experimento_elastico.py` | Experimento principal: inversão elástica, métricas e figuras |
 | `sensibilidade.py` | Estudo de sensibilidade: 8 eixos, 2 grades cruzadas, 1.000 execuções pareadas |
+| `bateria.py` | 17 testes a partir das entradas do driver de inversão sísmica da SeReMpy, 20 sementes pareadas cada |
 | `forward_elastico.py` | Modelo direto AVO de três ângulos |
 | `prior.py` | Conjunto *a priori* (tendência suave + perturbações correlacionadas) |
 | `referencia.py` | Modelos de referência sintéticos (em camadas, suavizado) |

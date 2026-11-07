@@ -1,0 +1,35 @@
+{
+  "configuracao": {
+    "ne": 500,
+    "semente": 42,
+    "snr": 3.3827956867153994,
+    "freq_wavelet": 45.0,
+    "amostras_wavelet": 64,
+    "angulos": [
+      15.0,
+      37.5,
+      60.0
+    ],
+    "comprimento_correlacao": 5.0,
+    "ordem_tendencia": 3,
+    "corte_tendencia": 0.04,
+    "vies_prior": 0.0,
+    "folga_inferior": 0.7,
+    "folga_superior": 1.3,
+    "n_assimilacoes": 4,
+    "razao_alpha": 1.0,
+    "gamma0": 1.0,
+    "max_iter": 10,
+    "eta1": 0.0001,
+    "eta2": 0.01,
+    "fator_ruido": 4.0,
+    "alvo": "poço"
+  },
+  "extra": {
+    "teste": "T12",
+    "descricao": "ângulos 15°, 37,5° e 60°",
+    "limites": false,
+    "dado_original": false,
+    "n_sementes": 20
+  }
+}

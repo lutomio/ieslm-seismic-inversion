@@ -1,0 +1,41 @@
+Bateria de testes: iES-LM x ES-MDA (20 sementes pareadas por teste; Wilcoxon, nivel 0,05; menor e melhor)
+
+     teste                   aval  aval | RMSE Vp                       | RMSE Vs                       | RMSE rho                      | |cob Vp - 0,8|                | cob Vp     
+                              MDA    LM |     MDA      LM      p         |     MDA      LM      p         |     MDA      LM      p         |     MDA      LM      p         |   MDA    LM
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+T01  serempy                  5.0   2.0 |  0.1534  0.1558  0.011 ES-MDA  |  0.1173  0.1204  0.004 ES-MDA  |  0.0465  0.0495  0.000 ES-MDA  |  0.0803  0.0591  0.043 iES-LM  |  0.72  0.86
+T02  serempy_dado_original    5.0   2.0 |  0.1454  0.1540  0.000 ES-MDA  |  0.1109  0.1189  0.000 ES-MDA  |  0.0433  0.0490  0.000 ES-MDA  |  0.0556  0.0566  0.549 empate  |  0.74  0.86
+T03  mesmo_custo              2.0   2.0 |  0.1543  0.1558  0.053 empate  |  0.1179  0.1204  0.008 ES-MDA  |  0.0467  0.0495  0.000 ES-MDA  |  0.0652  0.0591  0.881 empate  |  0.73  0.86
+T04  alpha_decrescente        5.0   2.0 |  0.1539  0.1558  0.027 ES-MDA  |  0.1176  0.1204  0.006 ES-MDA  |  0.0468  0.0495  0.000 ES-MDA  |  0.0768  0.0591  0.052 empate  |  0.72  0.86
+T05  esmda_na10              11.0   2.0 |  0.1539  0.1558  0.027 ES-MDA  |  0.1176  0.1204  0.006 ES-MDA  |  0.0467  0.0495  0.000 ES-MDA  |  0.0813  0.0591  0.030 iES-LM  |  0.72  0.86
+T06  snr10                    5.0   3.0 |  0.1456  0.1485  0.019 ES-MDA  |  0.1108  0.1132  0.007 ES-MDA  |  0.0423  0.0440  0.001 ES-MDA  |  0.1753  0.1247  0.000 iES-LM  |  0.62  0.68
+T07  snr50                    5.0   4.0 |  0.1342  0.1649  0.000 ES-MDA  |  0.1005  0.1304  0.000 ES-MDA  |  0.0376  0.0406  0.189 empate  |  0.3490  0.3768  0.376 empate  |  0.45  0.42
+T08  ne50                     5.0   2.0 |  0.1922  0.1818  0.027 iES-LM  |  0.1450  0.1393  0.105 empate  |  0.0634  0.0596  0.000 iES-LM  |  0.4722  0.1247  0.000 iES-LM  |  0.33  0.68
+T09  gamma0_025               5.0   2.0 |  0.1534  0.1520  0.216 empate  |  0.1173  0.1166  0.596 empate  |  0.0465  0.0473  0.044 ES-MDA  |  0.0803  0.0246  0.000 iES-LM  |  0.72  0.82
+T10  sem_eq43                 5.0  11.0 |  0.1534  2.0828  0.000 ES-MDA  |  0.1173  1.2739  0.000 ES-MDA  |  0.0465  1.1321  0.000 ES-MDA  |  0.0803  0.7995  0.000 ES-MDA  |  0.72  0.00
+T11  um_angulo                5.0   2.2 |  0.1745  0.1763  0.076 empate  |  0.1383  0.1392  0.105 empate  |  0.0486  0.0509  0.000 ES-MDA  |  0.0317  0.0738  0.001 ES-MDA  |  0.77  0.87
+T12  angulo60                 5.0   2.0 |  0.1485  0.1527  0.003 ES-MDA  |  0.1143  0.1193  0.000 ES-MDA  |  0.0467  0.0500  0.000 ES-MDA  |  0.0838  0.0255  0.000 iES-LM  |  0.72  0.83
+T13  wavelet25                5.0   2.0 |  0.1653  0.1705  0.001 ES-MDA  |  0.1270  0.1320  0.000 ES-MDA  |  0.0551  0.0530  0.000 iES-LM  |  0.0657  0.0210  0.001 iES-LM  |  0.73  0.82
+T14  vies_prior               5.0   2.0 |  0.3577  0.3502  0.001 iES-LM  |  0.2370  0.2329  0.003 iES-LM  |  0.1888  0.1875  0.452 empate  |  0.6818  0.5288  0.000 iES-LM  |  0.12  0.27
+T15  alvo_suavizado           5.0   2.1 |  0.0317  0.0206  0.003 iES-LM  |  0.0202  0.0132  0.003 iES-LM  |  0.0045  0.0029  0.003 iES-LM  |  0.2000  0.2000  1.000 empate  |  1.00  1.00
+T16  alvo_6camadas            5.0   2.0 |  0.0553  0.0497  0.036 iES-LM  |  0.0353  0.0316  0.036 iES-LM  |  0.0078  0.0070  0.027 iES-LM  |  0.1399  0.1717  0.000 ES-MDA  |  0.94  0.97
+T17  com_limites              5.0   2.0 |  0.1534  0.1558  0.011 ES-MDA  |  0.1173  0.1204  0.004 ES-MDA  |  0.0465  0.0495  0.000 ES-MDA  |  0.0803  0.0591  0.043 iES-LM  |  0.72  0.86
+
+Descricao dos testes:
+  T01 serempy                entradas do driver da SeReMpy (principal)
+  T02 serempy_dado_original  dado de data5seis.dat sem ruído, como no driver (inverse crime)
+  T03 mesmo_custo            ES-MDA com N_a = 1: mesmo custo do iES-LM (2 avaliações)
+  T04 alpha_decrescente      ES-MDA com α decrescente (razão 2)
+  T05 esmda_na10             ES-MDA com N_a = 10 (5,5× o custo do iES-LM)
+  T06 snr10                  menos ruído: SNR 10
+  T07 snr50                  pouco ruído: SNR 50
+  T08 ne50                   conjunto pequeno: N_e = 50
+  T09 gamma0_025             γ inicial 0,25 (Exemplo 2 de Ma e Bi)
+  T10 sem_eq43               iES-LM sem a parada no nível do ruído (Eq. 43)
+  T11 um_angulo              um ângulo só (30°)
+  T12 angulo60               ângulos 15°, 37,5° e 60°
+  T13 wavelet25              wavelet de 25 Hz (menor resolução)
+  T14 vies_prior             tendência do a priori 8% abaixo da verdadeira
+  T15 alvo_suavizado         alvo sintético suavizado
+  T16 alvo_6camadas          alvo sintético de 6 camadas
+  T17 com_limites            com limites físicos (0,7 e 1,3 da faixa do poço)

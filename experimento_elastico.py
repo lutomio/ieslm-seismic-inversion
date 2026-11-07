@@ -462,9 +462,31 @@ def _iteracao_divergente(res):
     return None
 
 
-def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm, res_sem=None, extras=()):
+def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm, res_sem=None, extras=(),
+             pasta=None, prefixo='', rotulo=None):
+    """
+    FIGURAS
+    Gera as figuras da execucao.
+
+    Parameters
+    ----------
+    pasta : str, optional
+        Pasta de destino. Por omissao, PASTA_FIGURAS.
+    prefixo : str, optional
+        Prefixo dos nomes dos arquivos (a bateria de testes usa o codigo do
+        teste, para que cada figura diga a qual teste pertence).
+    rotulo : str, optional
+        Texto de identificacao escrito no canto inferior esquerdo da figura.
+    """
     cfg = c['cfg']
-    os.makedirs(PASTA_FIGURAS, exist_ok=True)
+    pasta = PASTA_FIGURAS if pasta is None else pasta
+    os.makedirs(pasta, exist_ok=True)
+
+    def _salva(fig, nome):
+        if rotulo:
+            fig.text(0.005, 0.005, rotulo, ha='left', va='bottom', fontsize=8, color='0.3')
+        salva_figura(fig, prefixo + nome, pasta)
+
     Time = c['Time']
     verd = fe.desempilha(c['verdadeiro'])
     prio = fe.desempilha(c['prior'])
@@ -489,7 +511,7 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm, res_sem=None, extras=()):
     eixos[1, 0].legend(loc='lower right', fontsize=8)
     fig.suptitle('Propriedades elásticas estimadas (envelopes P10–P90)', y=0.98)
     fig.tight_layout()
-    salva_figura(fig, 'elastico_perfis')
+    _salva(fig, 'elastico_perfis')
 
     # Figura 2: ampliação da janela de maior divergência
     fig, eixos = plt.subplots(1, 3, figsize=(13, 5.4), sharey=True)
@@ -502,7 +524,7 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm, res_sem=None, extras=()):
     fig.suptitle('Detalhe da janela %.3f–%.3f s: onde os métodos mais divergem'
                  % janela, y=0.98)
     fig.tight_layout()
-    salva_figura(fig, 'elastico_detalhe')
+    _salva(fig, 'elastico_detalhe')
 
     # Figura 3: erro de estimativa, onde a diferenca entre os metodos aparece
     # (nos perfis ela fica invisivel: e da ordem de 3% da largura do eixo)
@@ -524,7 +546,7 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm, res_sem=None, extras=()):
     eixos[0].legend(loc='lower right', fontsize=8)
     fig.suptitle('Erro de estimativa (média do conjunto − referência)', y=0.98)
     fig.tight_layout()
-    salva_figura(fig, 'elastico_erro')
+    _salva(fig, 'elastico_erro')
 
     # Desativada em 14/10/2026, a pedido: a figura nao e mais gerada.
     # Para reativar, descomente o bloco abaixo.
@@ -597,7 +619,7 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm, res_sem=None, extras=()):
     #     titulo += '\nsem a parada, o passo diverge na iteração %d ($\\rho < 0$)' % divergente
     # fig.suptitle(titulo, y=0.99)
     # fig.tight_layout()
-    # salva_figura(fig, 'elastico_ganho')
+    # _salva(fig, 'elastico_ganho')
     #
     # Figura 5: residuo sem ruido, por angulo (colunas) e semente (linhas)
     n_ang = len(cfg.angulos)
@@ -630,7 +652,7 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm, res_sem=None, extras=()):
     fig.suptitle('Erro sistemático de cada método: sísmica do modelo verdadeiro '
                  '(sem o ruído somado) menos a sísmica prevista', y=0.995)
     fig.tight_layout(rect=(0, 0.03, 1, 1))
-    salva_figura(fig, 'elastico_residuos')
+    _salva(fig, 'elastico_residuos')
 
     # Desativada em 14/10/2026, a pedido: a figura nao e mais gerada.
     # Para reativar, descomente o bloco abaixo.
@@ -684,9 +706,9 @@ def _figuras(c, Z_mda, hist_mda, res_lm, Z_lm, res_sem=None, extras=()):
     # ax2.grid(alpha=0.3)
     # ax2.legend(fontsize=8)
     # fig.tight_layout()
-    # salva_figura(fig, 'elastico_convergencia')
+    # _salva(fig, 'elastico_convergencia')
 
-    print('\nfiguras salvas em %s (%s)' % (PASTA_FIGURAS, ', '.join(FORMATOS)))
+    print('\nfiguras salvas em %s (%s)' % (pasta, ', '.join(FORMATOS)))
 
 
 if __name__ == '__main__':

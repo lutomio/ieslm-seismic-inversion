@@ -20,3 +20,9 @@ MUDANCAS.md
 # Saidas da grade reduzida do estudo de sensibilidade (so para conferencia)
 resultados/sensibilidade_rapido.csv
 resultados/sensibilidade_rapido_config.json
+
+# Figuras geradas pelos scripts que nao entram no TCC: so as do T01
+# (figuras/testes/T01_serempy/) e as explicativas (figuras/tese/) sao versionadas
+/figuras/*.png
+/figuras/testes/*
+!/figuras/testes/T01_serempy/
